@@ -155,6 +155,17 @@ if [ ! -f "${PHENOTYPE_PB_PATH}com.google.android.projection.gearhead.pb" ] ; th
     chgrp -R "$AA_GROUP" "$AA_PATH"files/
 fi
 
+# Android 16 needs the newer stub with its matching privapp permissions, and the
+# overlay rebuilt for API 36 (NikGapps-Addon-16-AndroidAuto-20260222).
+# The overlay requires API 36, so older releases keep the previous files.
+if [ $API -ge 36 ] ; then
+    rm -rf $MODPATH/system/product/priv-app/AndroidAutoStubPrebuilt/oat
+    mv -f $MODPATH/api36/priv-app/AndroidAutoStubPrebuilt/AndroidAutoStubPrebuilt.apk $MODPATH/system/product/priv-app/AndroidAutoStubPrebuilt/
+    mv -f $MODPATH/api36/etc/permissions/com.google.android.projection.gearhead.xml $MODPATH/system/product/etc/permissions/
+    mv -f $MODPATH/api36/overlay/AndroidAutoOverlay.apk $MODPATH/system/product/overlay/
+fi
+rm -rf $MODPATH/api36
+
 # At this point, the module is ready for A13
 # We need to make some changes for A11 and A12
 if [ $API -lt 33 ] ; then
