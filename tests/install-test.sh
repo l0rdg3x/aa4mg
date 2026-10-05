@@ -51,6 +51,12 @@ if [ -n "$COMPARE_REF" ]; then
     TREES="worktree ref"
 fi
 
+mkdir -p "$W/tree/broken-xml" "$W/tree/broken-stub"
+cp -a "$W/tree/worktree/." "$W/tree/broken-xml/"
+cp -a "$W/tree/worktree/." "$W/tree/broken-stub/"
+rm "$W/tree/broken-xml/api36/etc/permissions/com.google.android.projection.gearhead.xml"
+rm "$W/tree/broken-stub/api36/priv-app/AndroidAutoStubPrebuilt/AndroidAutoStubPrebuilt.apk"
+
 make_manifest() {
     (
         cd "$1/data"
@@ -194,6 +200,21 @@ check_working_tree_case() {
     finish_case "api=$api answer=$answer [worktree]" "$dir/log"
 }
 
+# Hand-built or interrupted module trees: the stub must never be installed without its allowlist XML.
+check_broken_case() {
+    local kind=$1 want_xml=$2
+    local dir=$W/case/broken-$kind-36-yes
+    MOD=$dir/root/$MODREL
+    local stubdir=system/product/priv-app/AndroidAutoStubPrebuilt
+    local xml=system/product/etc/permissions/com.google.android.projection.gearhead.xml
+
+    [ "$(cat "$dir/rc")" = 0 ] || fail "installer exited with status $(cat "$dir/rc")"
+    check_hash "$stubdir/AndroidAutoStubPrebuilt.apk" $M_STUB
+    check_hash "$xml" "$want_xml"
+
+    finish_case "api=36 answer=yes [broken-$kind]" "$dir/log"
+}
+
 check_compare_case() {
     local api=$1 answer=$2
     local wdir=$W/case/worktree-$api-$answer rdir=$W/case/ref-$api-$answer
@@ -236,6 +257,11 @@ for api in $APIS; do
         check_working_tree_case "$api" "$answer"
     done
 done
+
+run_case broken-xml 36 yes
+run_case broken-stub 36 yes
+check_broken_case xml $M_XML
+check_broken_case stub $A_XML
 
 if [ -n "$COMPARE_REF" ]; then
     for api in $APIS; do
