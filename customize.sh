@@ -157,7 +157,7 @@ if [ ! -f "${PHENOTYPE_PB_PATH}com.google.android.projection.gearhead.pb" ] ; th
     # CoolWalk requirement, file cannot be modified..
     ui_print "Setting up additional dependencies..."
     AA_OWNER=$(stat -c '%U' "$AA_PATH")
-    AA_GROUP=$(stat -c '%U' "$AA_PATH")
+    AA_GROUP=$(stat -c '%G' "$AA_PATH")
 
     # Create the folder if missing + Inject the binary .pb file
     mkdir -p "$PHENOTYPE_PB_PATH"
