@@ -17,4 +17,4 @@
 - Stale oat/ (odex/vdex) for the pre-2025 stub on Android 11-15.
 - Next release: version number, update.json zipUrl/changelog and README install/update links pointing to this fork.
 - customize.sh leaves IFS=',' set after it returns (since 2023); Hybrid Mount's metainstall.sh partition loop then never creates the product link (mount still works per Hybrid Mount v6.2.2 source; needs a device test before fixing).
-- Security lead: customize.sh runs chown -R / chgrp -R as root inside Android Auto's app-writable files/ dir; check busybox symlink handling.
+- Security (pre-existing, low risk): customize.sh runs chown -R / chgrp -R as root on "<app>/files/" and "<gms>/databases/". Tested with the KernelSU-Next busybox: symlinks met during recursion are not followed, but the start path has a trailing slash, so if Android Auto replaced files/ (or microG replaced databases/) with a symlink, root would chown the symlink target tree to the app's uid at install time. Fix: skip the copy when that path is a symlink.
