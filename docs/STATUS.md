@@ -16,3 +16,5 @@
 - phenotype.db is ignored by microG; minimum microG version for Car App Library apps.
 - Stale oat/ (odex/vdex) for the pre-2025 stub on Android 11-15.
 - Next release: version number, update.json zipUrl/changelog and README install/update links pointing to this fork.
+- customize.sh leaves IFS=',' set after it returns (since 2023); Hybrid Mount's metainstall.sh partition loop then never creates the product link (mount still works per Hybrid Mount v6.2.2 source; needs a device test before fixing).
+- Security lead: customize.sh runs chown -R / chgrp -R as root inside Android Auto's app-writable files/ dir; check busybox symlink handling.

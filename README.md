@@ -49,7 +49,7 @@ During installation aa4mg asks whether to install these stubs, which are fake pl
 
 A stub replaces the real app of the same name, so the real app disappears or stops working (users reported this in upstream issues #15 and #19). Answer YES only for Google apps you do not have installed.
 
-To remove a stub, install aa4mg again, answer NO for it and reboot. A user reported that deleting the stub app with an app manager did not last: the stub came back after every reboot while aa4mg was installed (upstream issue #42).
+Do not install the Maps stub if you use the real Google Maps. To switch from the stub back to the real app, a user confirmed this sequence (upstream issue #19): uninstall the Android Auto updates, remove aa4mg and reboot, install Maps, then install aa4mg again and answer NO to the Maps stub. Another user reported that the Maps stub kept coming back after every reboot even after removing aa4mg and uninstalling the stub with an app manager (upstream issue #42); that report has no confirmed fix.
 
 On ROMs de-bloated by hiding system apps (for example with a de-bloater module), a user reported that the stubs were not written to their original locations and installed the stub APKs as normal apps instead (upstream issue #28).
 
@@ -57,12 +57,12 @@ On ROMs de-bloated by hiding system apps (for example with a de-bloater module),
 
 Once the installation is complete:
 - [Android Auto](https://play.google.com/store/apps/details?id=com.google.android.projection.gearhead) can be updated through [Aurora Store](https://gitlab.com/AuroraOSS/AuroraStore).
-- [aa4mg](https://github.com/sn-00-x/aa4mg) can be updated through Magisk Manager
+- [aa4mg](https://github.com/sn-00-x/aa4mg) can be updated through the Magisk or KernelSU manager
 
 ## Uninstall
 
 1. Settings => Apps => See all apps => Android Auto => Triple dot icon *(top right corner)* => Uninstall updates
-2. Magisk => Modules => Remove "Android Auto 4 microG" => Reboot
+2. Magisk or KernelSU manager => Modules => Remove "Android Auto 4 microG" => Reboot
 
 ## First steps
 
@@ -133,7 +133,7 @@ then you can still access the AA settings through either of below ways:
 
 ## Recovery
 
-If the device does not boot after installing or enabling aa4mg, boot with modules disabled and then remove aa4mg (see the [Warning](#warning) about uninstalling Android Auto updates first).
+If the device does not boot after installing or enabling aa4mg, boot with modules disabled and then remove aa4mg. Once the phone boots, uninstall the Android Auto updates before removing aa4mg. If updates were already installed, booting with modules disabled may also fail (see [Warning](#warning)).
 
 - **Magisk safe mode:** Magisk disables all modules when Volume Down is held continuously for more than 3 seconds while it checks at early boot. This check happens earlier than the system's own Safe Mode detection, so the key must be held from before the boot animation starts. The Magisk FAQ (`docs/faq.md` in the Magisk repository) describes the timing.
 - **KernelSU-Next safe mode:** KernelSU-Next disables all modules when it counts at least 3 Volume Down key presses during early boot. The exact timing is not documented, so you may need to try a few times.
