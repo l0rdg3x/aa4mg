@@ -33,6 +33,7 @@ chooseport() {
 }
 
 INSTALLED_APPS=""
+SKIPPED_APPS=""
 
 # Initialize installation
 ui_print ""
@@ -42,18 +43,25 @@ ui_print ""
 ui_print "*** Please answer using volume keys ***"
 ui_print "*** Volume UP (+)   = YES           ***"
 ui_print "*** Volume DOWN (-) = NO            ***"
+ui_print ""
+ui_print "Stubs are fake placeholder apps. Answer YES only for"
+ui_print "Google apps you do NOT have installed: a stub replaces"
+ui_print "the real app. To change your choice later, install"
+ui_print "aa4mg again and reboot."
 
 # Request if Fake Google Maps stub dependency should be installed
 ui_print ""
 ui_print "*** Install Fake Google Maps stub? ***"
 ui_print "(a.k.a. com.google.android.apps.maps)"
 ui_print ""
-if chooseport 20 "NO"; then # 0 = True, why shell why..
+if chooseport 30 "NO"; then # 0 = True, why shell why..
     ui_print "Fake Google Maps stub will be installed on next reboot!"
     INSTALLED_APPS="Google Maps stub"
 else
     rm -r "$MODPATH/system/product/app/Maps";
     ui_print "Excluded Fake Google Maps stub from installation..."
+    [ -n "$SKIPPED_APPS" ] && SKIPPED_APPS="$SKIPPED_APPS,"
+    SKIPPED_APPS="${SKIPPED_APPS}Google Maps stub"
 fi
 
 # Request if Fake Google Speech Services stub dependency should be installed
@@ -61,13 +69,15 @@ ui_print ""
 ui_print "*** Install Fake Google Speech Services stub? ***"
 ui_print "(a.k.a. com.google.android.tts)"
 ui_print ""
-if chooseport 10 "NO"; then # 0 = True, why shell why..
+if chooseport 30 "NO"; then # 0 = True, why shell why..
     ui_print "Fake Google Speech Services stub will be installed on next reboot!"
     [ -n "$INSTALLED_APPS" ] && INSTALLED_APPS="$INSTALLED_APPS,"
     INSTALLED_APPS="${INSTALLED_APPS}Google Speech Services stub"
 else
     rm -r "$MODPATH/system/product/app/GoogleTTS";
     ui_print "Excluded Fake Google Speech Services stub from installation..."
+    [ -n "$SKIPPED_APPS" ] && SKIPPED_APPS="$SKIPPED_APPS,"
+    SKIPPED_APPS="${SKIPPED_APPS}Google Speech Services stub"
 fi
 
 # Request if Fake Google Search stub dependency should be installed
@@ -75,13 +85,15 @@ ui_print ""
 ui_print "*** Install Fake Google Search stub? ***"
 ui_print "(a.k.a. com.google.android.googlequicksearchbox)"
 ui_print ""
-if chooseport 10 "NO"; then # 0 = True, why shell why..
+if chooseport 30 "NO"; then # 0 = True, why shell why..
     ui_print "Fake Google Search stub will be installed on next reboot!"
     [ -n "$INSTALLED_APPS" ] && INSTALLED_APPS="$INSTALLED_APPS,"
     INSTALLED_APPS="${INSTALLED_APPS}Google Search stub"
 else
     rm -r "$MODPATH/system/product/priv-app/Velvet";
     ui_print "Excluded Fake Google Search stub from installation..."
+    [ -n "$SKIPPED_APPS" ] && SKIPPED_APPS="$SKIPPED_APPS,"
+    SKIPPED_APPS="${SKIPPED_APPS}Google Search stub"
 fi
 
 # Ask for Android Auto - XLauncher Unlocked
@@ -90,13 +102,15 @@ ui_print "*** Install Android Auto - XLauncher Unlocked? ***"
 ui_print "*** Recommended for enabling 3rd party apps    ***"
 ui_print ""
 AAXLU="true"
-if chooseport 10 "YES"; then
+if chooseport 30 "YES"; then
     ui_print "Android Auto - XLauncher Unlocked will be installed on next reboot!"
     [ -n "$INSTALLED_APPS" ] && INSTALLED_APPS="$INSTALLED_APPS,"
     INSTALLED_APPS="${INSTALLED_APPS}Android Auto - XLauncher Unlocked"
 else
     rm -r "$MODPATH/system/product/app/XLauncherUnlocked";
     ui_print "Excluded Android Auto - XLauncher Unlocked from installation..."
+    [ -n "$SKIPPED_APPS" ] && SKIPPED_APPS="$SKIPPED_APPS,"
+    SKIPPED_APPS="${SKIPPED_APPS}Android Auto - XLauncher Unlocked"
     AAXLU="false"
 fi
 
@@ -111,7 +125,7 @@ COPY_PHENOTYPE_DB="true"
 if [ -f "${PHENOTYPE_DB_PATH}/phenotype.db" ] ; then
     ui_print "*** Overwrite pre-existing phenotyope.db? ***"
     ui_print ""
-    if chooseport 10 "NO"; then
+    if chooseport 30 "NO"; then
         ui_print "Overwriting phenotype.db"
     else
         ui_print "Keeping pre-existing phenotype.db"
@@ -207,6 +221,12 @@ IFS=','
 for INSTALLED_APP in $INSTALLED_APPS ; do
     ui_print "    $INSTALLED_APP"
 done
+if [ -n "$SKIPPED_APPS" ] ; then
+    ui_print "Skipped:"
+    for SKIPPED_APP in $SKIPPED_APPS ; do
+        ui_print "    $SKIPPED_APP"
+    done
+fi
 ui_print "successfull! 🎉"
 if [ "$NO_METAMODULE" = "true" ] ; then
     ui_print ""
