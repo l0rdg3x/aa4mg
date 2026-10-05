@@ -1,4 +1,4 @@
-# Android Auto 4 MicroG (for A11, A12, A13, A14, A15)
+# Android Auto 4 MicroG (for A11, A12, A13, A14, A15, A16)
 
 This is a [Magisk](https://topjohnwu.github.io/Magisk/) module that provides an AA (Android Auto) stub as system app, optionally together with [XLauncher Unlocked](https://github.com/Rikj000/Android-Auto-XLauncher-Unlocked) and stubs for Google TTS, Google Maps & Google Search.
 It is intended to be used on de-googled devices running MicroG!
@@ -98,8 +98,10 @@ then you can still access the AA settings through either of below ways:
 ## Build
 
 ```bash
-zip aa4mg.zip -9r *
+zip aa4mg.zip -9r * -x 'tests/*' 'docs/*'
 ```
+
+Run `BUSYBOX=/path/to/static/busybox tests/install-test.sh` to simulate the installation on every supported API level.
 
 ## Credits
 
