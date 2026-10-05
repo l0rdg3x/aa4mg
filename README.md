@@ -25,7 +25,7 @@ your device may fail to boot due to permission errors!
 4. Install [Android Auto](https://play.google.com/store/apps/details?id=com.google.android.projection.gearhead) through [Aurora Store](https://gitlab.com/AuroraOSS/AuroraStore),
     use `Root installer` (preferred) or `Aurora Services` as installation method to "install as Google Play Store".
     *(A user on LineageOS 23.2 reported that Android Auto only worked after reinstalling it with the Root installer instead of Aurora Services, upstream issue #48.)*
-    *(If the update fails with `signatures do not match` or the car shows communication error 14, a user reported success after spoofing a Pixel device in Aurora Store, upstream issue #30.)*
+    *(If the car shows communication error 14, a user reported success after spoofing a Pixel device in Aurora Store (upstream issue #30). For `signatures do not match`, another user in the same issue also restored the app from a saved bundle.)*
     *(You can also install through your Package Manager if Aurora doesn't work, not preferred as it does not "install as Google Play Store")*
 5. **(Optional)** Settings => Apps => See all apps => Android Auto => Mobile data & Wi-Fi => UnCheck all - ***WARNING:*** **THIS WILL MAKE IT IMPOSSIBLE TO CONNECT WIRELESSLY**. If you want to use Android Auto wirelessly you should keep these options enabled (already enabled by default) and skip this step. This step only provides further privacy.
 6. Settings => Notifications => Device & app notifications => Android Auto => Check `Allow Notification Access` => Allow
@@ -49,7 +49,7 @@ During installation aa4mg asks whether to install these stubs, which are fake pl
 
 A stub replaces the real app of the same name, so the real app disappears or stops working (users reported this in upstream issues #15 and #19). Answer YES only for Google apps you do not have installed.
 
-To remove a stub, install aa4mg again, answer NO for it and reboot. Deleting the stub app while the module is mounted only lasts until the next reboot (upstream issue #42).
+To remove a stub, install aa4mg again, answer NO for it and reboot. A user reported that deleting the stub app with an app manager did not last: the stub came back after every reboot while aa4mg was installed (upstream issue #42).
 
 On ROMs de-bloated by hiding system apps (for example with a de-bloater module), a user reported that the stubs were not written to their original locations and installed the stub APKs as normal apps instead (upstream issue #28).
 
@@ -128,7 +128,7 @@ then you can still access the AA settings through either of below ways:
 
 ## Troubleshooting
 
-- **A third-party Car App Library app such as Spotify reports "requires a newer version of Android Auto":** update microG. The Android Auto flag that was missing was added to microG in mid-2026 (microG PR #3491). Users also reported that Android Auto and Spotify updates changed this behaviour (upstream issue #49).
+- **A third-party Car App Library app such as Spotify reports "requires a newer version of Android Auto":** updating microG may help. The Android Auto flag that was missing was added to microG in mid-2026 (microG PR #3491). Users also reported that Android Auto and Spotify updates changed this behaviour (upstream issue #49).
 - **Wireless Android Auto does not connect:** users reported that VPN apps, including DNS-blocking VPNs, can break the wireless connection (upstream issue #13). Some head units needed a restart after a failed connection (upstream issue #12).
 
 ## Recovery

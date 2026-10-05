@@ -9,6 +9,7 @@
 
 ## In progress
 - On-device validation on Nothing Phone 2, LineageOS 23.2, microG, KernelSU-Next 3 + Hybrid Mount.
+- README KernelSU advice (Zygisk provider + Vector steps, "Umount modules" for XLauncher Unlocked and Android Auto) is not yet device-tested.
 
 ## Next (proposed, not started)
 - uninstall.sh never works: it runs before PackageManager starts (Magisk and KernelSU-Next).
