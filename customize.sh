@@ -231,7 +231,7 @@ ui_print "successfull! 🎉"
 if [ "$NO_METAMODULE" = "true" ] ; then
     ui_print ""
     ui_print "*** WARNING: no KernelSU metamodule found!           ***"
-    ui_print "*** KernelSU-Next 3.x and recent KernelSU only mount  ***"
+    ui_print "*** KernelSU-Next 3.x and recent KernelSU only mount ***"
     ui_print "*** module files through a metamodule (for example   ***"
     ui_print "*** Hybrid Mount or Meta Magic Mount). Without one,  ***"
     ui_print "*** aa4mg is installed but Android Auto will not     ***"
