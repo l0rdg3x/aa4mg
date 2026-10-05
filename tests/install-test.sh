@@ -73,7 +73,8 @@ WARN_LINE='*** WARNING: no KernelSU metamodule found!'
 
 # Metamodule fixtures under data/, so they appear in every manifest. The default models KernelSU with
 # Hybrid Mount: /data/adb/metamodule is an absolute symlink to /data/adb/modules/hybrid_mount, whose
-# module.prop carries metamodule=1. Other scenarios: nometa, propfallback, dangling, magisk.
+# module.prop carries metamodule=1. Other scenarios: nometa, propfallback, dangling, magisk, phenotype (default plus a
+# pre-existing phenotype.db).
 setup_metamodule() {
     local root=$1 scenario=$2 mods=$1/data/adb/modules
     mkdir -p "$mods"
@@ -86,6 +87,12 @@ setup_metamodule() {
             mkdir -p "$mods/other"
             printf 'id=other\nname=Other\n' > "$mods/other/module.prop"
             [ "$scenario" != dangling ] || ln -s /data/adb/modules/gone "$root/data/adb/metamodule" ;;
+        phenotype)
+            mkdir -p "$mods/hybrid_mount"
+            printf 'id=hybrid_mount\nname=Hybrid Mount\nmetamodule=1\n' > "$mods/hybrid_mount/module.prop"
+            ln -s /data/adb/modules/hybrid_mount "$root/data/adb/metamodule"
+            mkdir -p "$root/data/data/com.google.android.gms/databases"
+            echo 'pre-existing phenotype.db' > "$root/data/data/com.google.android.gms/databases/phenotype.db" ;;
         propfallback)
             mkdir -p "$mods/pf"
             printf 'id=pf\nmetamodule = True \n' > "$mods/pf/module.prop" ;;
@@ -173,18 +180,18 @@ check_warning() {
         fail "metamodule warning missing"
         return
     fi
-    r=$(grep -nF -- '*** Please re-boot your device,' "$dir/log" | head -n 1 | cut -d: -f1)
+    r=$(grep -nF -- '*** Please re-boot your device,' "$dir/log" | head -n 1 | cut -d: -f1 || true)
     [ -n "$r" ] && [ "$w" -lt "$r" ] || fail "metamodule warning is not printed before the re-boot lines"
 }
 
-# check_prompts CASEDIR yes|no
+# check_prompts CASEDIR yes|no [EXPECTED_PROMPTS]
 check_prompts() {
-    local dir=$1 answer=$2 n
+    local dir=$1 answer=$2 want=${3:-4} n
     grep -qF -- 'Stubs are fake placeholder apps. Answer YES only for' "$dir/log" || fail "stub explanation missing from the log"
     local prompts timeouts
     prompts=$(grep -cE '^\*\*\* (Install |Overwrite pre-existing)' "$dir/log" || true)
     timeouts=$(grep -cF -- 'Please answer within 30 seconds or' "$dir/log" || true)
-    [ "$prompts" -ge 4 ] && [ "$timeouts" = "$prompts" ] || fail "expected one 30 second timeout per prompt, got $timeouts timeouts for $prompts prompts"
+    [ "$prompts" = "$want" ] && [ "$timeouts" = "$prompts" ] || fail "expected $want prompts with one 30 second timeout each, got $timeouts timeouts for $prompts prompts"
     ! grep -qE 'within (10|20) seconds or' "$dir/log" || fail "prompt with a timeout other than 30 seconds"
     if [ "$answer" = no ]; then
         grep -qxF -- 'Skipped:' "$dir/log" || fail "Skipped list missing although answer was no"
@@ -302,6 +309,30 @@ check_ksu_case() {
     finish_case "api=36 answer=yes [ksu-$scenario]" "$dir/log"
 }
 
+# check_phenotype_case yes|no: API 36 with a pre-existing phenotype.db
+check_phenotype_case() {
+    local answer=$1
+    local dir=$W/case/worktree-36-$answer-phenotype
+    local db=data/data/com.google.android.gms/databases/phenotype.db
+    local pre got want
+    [ "$(cat "$dir/rc")" = 0 ] || fail "installer exited with status $(cat "$dir/rc")"
+    grep -q 'Installation of' "$dir/log" || fail "log does not contain 'Installation of'"
+    check_warning "$dir" absent
+    check_prompts "$dir" "$answer" 5
+    grep -qF -- '*** Overwrite pre-existing phenotyope.db? ***' "$dir/log" || fail "phenotype.db overwrite prompt missing"
+    pre=$(echo 'pre-existing phenotype.db' | sha256sum); pre=${pre%% *}
+    got=$(sha256sum < "$dir/root/$db"); got=${got%% *}
+    want=$(sha256sum < "$W/tree/worktree/$db"); want=${want%% *}
+    if [ "$answer" = no ]; then
+        [ "$got" = "$pre" ] || fail "pre-existing phenotype.db changed although answer was no"
+        grep -qF -- 'Keeping pre-existing phenotype.db' "$dir/log" || fail "keep message missing"
+    else
+        [ "$got" = "$want" ] || fail "phenotype.db not replaced by the module copy although answer was yes"
+        grep -qF -- 'Overwriting phenotype.db' "$dir/log" || fail "overwrite message missing"
+    fi
+    finish_case "api=36 answer=$answer [phenotype-exists]" "$dir/log"
+}
+
 check_compare_case() {
     local api=$1 answer=$2
     local wdir=$W/case/worktree-$api-$answer rdir=$W/case/ref-$api-$answer
@@ -352,6 +383,11 @@ check_ksu_case nometa present
 check_ksu_case propfallback absent
 check_ksu_case dangling present
 check_ksu_case magisk absent
+
+for answer in $ANSWERS; do
+    run_case worktree 36 "$answer" phenotype
+    check_phenotype_case "$answer"
+done
 
 run_case broken-xml 36 yes
 run_case broken-stub 36 yes
