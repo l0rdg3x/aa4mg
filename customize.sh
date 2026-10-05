@@ -184,6 +184,21 @@ if [ $API -lt 31 ] ; then
     fi
 fi
 
+# KernelSU-Next 3.x and recent KernelSU mount module files only through a metamodule: the
+# /data/adb/metamodule symlink to an existing module, or any module with metamodule=1|true in
+# its module.prop (KernelSU-Next userspace/ksud/src/metamodule.rs).
+NO_METAMODULE="false"
+if [ "$KSU" = "true" ] && ! { [ -L /data/adb/metamodule ] && [ -d /data/adb/metamodule ]; } ; then
+    NO_METAMODULE="true"
+    for MM_PROP in /data/adb/modules/*/module.prop ; do
+        [ -f "$MM_PROP" ] || continue
+        MM_VALUE=$(sed -n 's/^[[:space:]]*metamodule[[:space:]]*=//p' "$MM_PROP" | tr -d ' \t\r' | tr 'A-Z' 'a-z')
+        case "$MM_VALUE" in
+            1|true) NO_METAMODULE="false" ;;
+        esac
+    done
+fi
+
 # Finish installation, dependency APKs will automatically be installed on reboot
 ui_print ""
 ui_print "Installation of"
@@ -193,6 +208,17 @@ for INSTALLED_APP in $INSTALLED_APPS ; do
     ui_print "    $INSTALLED_APP"
 done
 ui_print "successfull! 🎉"
+if [ "$NO_METAMODULE" = "true" ] ; then
+    ui_print ""
+    ui_print "*** WARNING: no KernelSU metamodule found!           ***"
+    ui_print "*** KernelSU-Next 3.x and recent KernelSU only mount  ***"
+    ui_print "*** module files through a metamodule (for example   ***"
+    ui_print "*** Hybrid Mount or Meta Magic Mount). Without one,  ***"
+    ui_print "*** aa4mg is installed but Android Auto will not     ***"
+    ui_print "*** work. Install a metamodule, reboot, then install ***"
+    ui_print "*** aa4mg again. Older KernelSU releases that mount  ***"
+    ui_print "*** modules themselves can ignore this warning.      ***"
+fi
 ui_print ""
 ui_print "*** Please re-boot your device,                      ***"
 ui_print "*** and then update Android Auto (e.g. with Aurora)! ***"
