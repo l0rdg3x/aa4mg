@@ -33,6 +33,7 @@ chooseport() {
 }
 
 INSTALLED_APPS=""
+SKIPPED_APPS=""
 
 # Initialize installation
 ui_print ""
@@ -42,18 +43,25 @@ ui_print ""
 ui_print "*** Please answer using volume keys ***"
 ui_print "*** Volume UP (+)   = YES           ***"
 ui_print "*** Volume DOWN (-) = NO            ***"
+ui_print ""
+ui_print "Stubs are fake placeholder apps. Answer YES only for"
+ui_print "Google apps you do NOT have installed: a stub replaces"
+ui_print "the real app. To change your choice later, install"
+ui_print "aa4mg again and reboot."
 
 # Request if Fake Google Maps stub dependency should be installed
 ui_print ""
 ui_print "*** Install Fake Google Maps stub? ***"
 ui_print "(a.k.a. com.google.android.apps.maps)"
 ui_print ""
-if chooseport 20 "NO"; then # 0 = True, why shell why..
+if chooseport 30 "NO"; then # 0 = True, why shell why..
     ui_print "Fake Google Maps stub will be installed on next reboot!"
     INSTALLED_APPS="Google Maps stub"
 else
     rm -r "$MODPATH/system/product/app/Maps";
     ui_print "Excluded Fake Google Maps stub from installation..."
+    [ -n "$SKIPPED_APPS" ] && SKIPPED_APPS="$SKIPPED_APPS,"
+    SKIPPED_APPS="${SKIPPED_APPS}Google Maps stub"
 fi
 
 # Request if Fake Google Speech Services stub dependency should be installed
@@ -61,13 +69,15 @@ ui_print ""
 ui_print "*** Install Fake Google Speech Services stub? ***"
 ui_print "(a.k.a. com.google.android.tts)"
 ui_print ""
-if chooseport 10 "NO"; then # 0 = True, why shell why..
+if chooseport 30 "NO"; then # 0 = True, why shell why..
     ui_print "Fake Google Speech Services stub will be installed on next reboot!"
     [ -n "$INSTALLED_APPS" ] && INSTALLED_APPS="$INSTALLED_APPS,"
     INSTALLED_APPS="${INSTALLED_APPS}Google Speech Services stub"
 else
     rm -r "$MODPATH/system/product/app/GoogleTTS";
     ui_print "Excluded Fake Google Speech Services stub from installation..."
+    [ -n "$SKIPPED_APPS" ] && SKIPPED_APPS="$SKIPPED_APPS,"
+    SKIPPED_APPS="${SKIPPED_APPS}Google Speech Services stub"
 fi
 
 # Request if Fake Google Search stub dependency should be installed
@@ -75,13 +85,15 @@ ui_print ""
 ui_print "*** Install Fake Google Search stub? ***"
 ui_print "(a.k.a. com.google.android.googlequicksearchbox)"
 ui_print ""
-if chooseport 10 "NO"; then # 0 = True, why shell why..
+if chooseport 30 "NO"; then # 0 = True, why shell why..
     ui_print "Fake Google Search stub will be installed on next reboot!"
     [ -n "$INSTALLED_APPS" ] && INSTALLED_APPS="$INSTALLED_APPS,"
     INSTALLED_APPS="${INSTALLED_APPS}Google Search stub"
 else
     rm -r "$MODPATH/system/product/priv-app/Velvet";
     ui_print "Excluded Fake Google Search stub from installation..."
+    [ -n "$SKIPPED_APPS" ] && SKIPPED_APPS="$SKIPPED_APPS,"
+    SKIPPED_APPS="${SKIPPED_APPS}Google Search stub"
 fi
 
 # Ask for Android Auto - XLauncher Unlocked
@@ -90,13 +102,15 @@ ui_print "*** Install Android Auto - XLauncher Unlocked? ***"
 ui_print "*** Recommended for enabling 3rd party apps    ***"
 ui_print ""
 AAXLU="true"
-if chooseport 10 "YES"; then
+if chooseport 30 "YES"; then
     ui_print "Android Auto - XLauncher Unlocked will be installed on next reboot!"
     [ -n "$INSTALLED_APPS" ] && INSTALLED_APPS="$INSTALLED_APPS,"
     INSTALLED_APPS="${INSTALLED_APPS}Android Auto - XLauncher Unlocked"
 else
     rm -r "$MODPATH/system/product/app/XLauncherUnlocked";
     ui_print "Excluded Android Auto - XLauncher Unlocked from installation..."
+    [ -n "$SKIPPED_APPS" ] && SKIPPED_APPS="$SKIPPED_APPS,"
+    SKIPPED_APPS="${SKIPPED_APPS}Android Auto - XLauncher Unlocked"
     AAXLU="false"
 fi
 
@@ -111,7 +125,7 @@ COPY_PHENOTYPE_DB="true"
 if [ -f "${PHENOTYPE_DB_PATH}/phenotype.db" ] ; then
     ui_print "*** Overwrite pre-existing phenotyope.db? ***"
     ui_print ""
-    if chooseport 10 "NO"; then
+    if chooseport 30 "NO"; then
         ui_print "Overwriting phenotype.db"
     else
         ui_print "Keeping pre-existing phenotype.db"
@@ -143,7 +157,7 @@ if [ ! -f "${PHENOTYPE_PB_PATH}com.google.android.projection.gearhead.pb" ] ; th
     # CoolWalk requirement, file cannot be modified..
     ui_print "Setting up additional dependencies..."
     AA_OWNER=$(stat -c '%U' "$AA_PATH")
-    AA_GROUP=$(stat -c '%U' "$AA_PATH")
+    AA_GROUP=$(stat -c '%G' "$AA_PATH")
 
     # Create the folder if missing + Inject the binary .pb file
     mkdir -p "$PHENOTYPE_PB_PATH"
@@ -184,6 +198,21 @@ if [ $API -lt 31 ] ; then
     fi
 fi
 
+# KernelSU-Next 3.x and recent KernelSU mount module files only through a metamodule: the
+# /data/adb/metamodule symlink to an existing module, or any module with metamodule=1|true in
+# its module.prop (KernelSU-Next userspace/ksud/src/metamodule.rs).
+NO_METAMODULE="false"
+if [ "$KSU" = "true" ] && ! { [ -L /data/adb/metamodule ] && [ -d /data/adb/metamodule ]; } ; then
+    NO_METAMODULE="true"
+    for MM_PROP in /data/adb/modules/*/module.prop ; do
+        [ -f "$MM_PROP" ] || continue
+        MM_VALUE=$(sed -n 's/^[[:space:]]*metamodule[[:space:]]*=//p' "$MM_PROP" | tr -d ' \t\r' | tr 'A-Z' 'a-z')
+        case "$MM_VALUE" in
+            1|true) NO_METAMODULE="false" ;;
+        esac
+    done
+fi
+
 # Finish installation, dependency APKs will automatically be installed on reboot
 ui_print ""
 ui_print "Installation of"
@@ -192,7 +221,24 @@ IFS=','
 for INSTALLED_APP in $INSTALLED_APPS ; do
     ui_print "    $INSTALLED_APP"
 done
+if [ -n "$SKIPPED_APPS" ] ; then
+    ui_print "Skipped:"
+    for SKIPPED_APP in $SKIPPED_APPS ; do
+        ui_print "    $SKIPPED_APP"
+    done
+fi
 ui_print "successfull! 🎉"
+if [ "$NO_METAMODULE" = "true" ] ; then
+    ui_print ""
+    ui_print "*** WARNING: no KernelSU metamodule found!           ***"
+    ui_print "*** KernelSU-Next 3.x and recent KernelSU only mount ***"
+    ui_print "*** module files through a metamodule (for example   ***"
+    ui_print "*** Hybrid Mount or Meta Magic Mount). Without one,  ***"
+    ui_print "*** aa4mg is installed but Android Auto will not     ***"
+    ui_print "*** work. Install a metamodule, reboot, then install ***"
+    ui_print "*** aa4mg again. Older KernelSU releases that mount  ***"
+    ui_print "*** modules themselves can ignore this warning.      ***"
+fi
 ui_print ""
 ui_print "*** Please re-boot your device,                      ***"
 ui_print "*** and then update Android Auto (e.g. with Aurora)! ***"
