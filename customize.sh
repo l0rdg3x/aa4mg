@@ -160,8 +160,8 @@ fi
 # The overlay requires API 36, so older releases keep the previous files.
 if [ $API -ge 36 ] ; then
     rm -rf $MODPATH/system/product/priv-app/AndroidAutoStubPrebuilt/oat
-    mv -f $MODPATH/api36/priv-app/AndroidAutoStubPrebuilt/AndroidAutoStubPrebuilt.apk $MODPATH/system/product/priv-app/AndroidAutoStubPrebuilt/
-    mv -f $MODPATH/api36/etc/permissions/com.google.android.projection.gearhead.xml $MODPATH/system/product/etc/permissions/
+    mv -f $MODPATH/api36/etc/permissions/com.google.android.projection.gearhead.xml $MODPATH/system/product/etc/permissions/ &&
+        mv -f $MODPATH/api36/priv-app/AndroidAutoStubPrebuilt/AndroidAutoStubPrebuilt.apk $MODPATH/system/product/priv-app/AndroidAutoStubPrebuilt/
     mv -f $MODPATH/api36/overlay/AndroidAutoOverlay.apk $MODPATH/system/product/overlay/
 fi
 rm -rf $MODPATH/api36
