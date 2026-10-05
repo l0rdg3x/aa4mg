@@ -98,8 +98,10 @@ then you can still access the AA settings through either of below ways:
 ## Build
 
 ```bash
-zip aa4mg.zip -9r *
+zip aa4mg.zip -9r * -x 'tests/*' 'docs/*'
 ```
+
+Run `BUSYBOX=/path/to/static/busybox tests/install-test.sh` to simulate the installation on every supported API level.
 
 ## Credits
 
