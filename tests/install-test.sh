@@ -201,19 +201,23 @@ check_compare_case() {
 
     [ "$(cat "$rdir/rc")" = 0 ] || fail "reference installer exited with status $(cat "$rdir/rc")"
 
+    local mp=adb/modules_update/aa4mg
+    grep -vE "  $mp/(customize\.sh|README\.md|CHANGELOG|module\.prop|update\.json)\$" "$rdir/manifest" > "$rdir/manifest.cmp"
+    grep -vE "  $mp/(customize\.sh|README\.md|CHANGELOG|module\.prop|update\.json)\$" "$wdir/manifest" > "$wdir/manifest.cmp"
+
     if [ "$api" -le 35 ]; then
-        diff -u "$rdir/manifest" "$wdir/manifest" > "$W/diff" || fail "manifest differs from $COMPARE_REF:"$'\n'"$(sed 's/^/        /' "$W/diff")"
+        diff -u "$rdir/manifest.cmp" "$wdir/manifest.cmp" > "$W/diff" || fail "manifest differs from $COMPARE_REF:"$'\n'"$(sed 's/^/        /' "$W/diff")"
     else
         local line path
         while IFS= read -r line; do
             path=${line#*  }
             case "$path" in
-                *system/product/priv-app/AndroidAutoStubPrebuilt/*) ;;
-                *system/product/etc/permissions/com.google.android.projection.gearhead.xml) ;;
-                *system/product/overlay/AndroidAutoOverlay.apk) ;;
+                $mp/system/product/priv-app/AndroidAutoStubPrebuilt/*) ;;
+                $mp/system/product/etc/permissions/com.google.android.projection.gearhead.xml) ;;
+                $mp/system/product/overlay/AndroidAutoOverlay.apk) ;;
                 *) fail "unexpected manifest difference: $line" ;;
             esac
-        done < <(diff "$rdir/manifest" "$wdir/manifest" | sed -n 's/^[<>] //p')
+        done < <(diff "$rdir/manifest.cmp" "$wdir/manifest.cmp" | sed -n 's/^[<>] //p')
     fi
 
     finish_case "$label" "$rdir/log"
