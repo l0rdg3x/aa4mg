@@ -1,6 +1,6 @@
 Unreleased (A11, A12, A13, A14, A15, A16)
 
-- Add Android 16 support: newer Android Auto stub, privapp permissions and overlay from NikGapps-Addon-16-AndroidAuto-20260222 (via upstream PR #47 by alpianon), installed only on Android 16
+- Add Android 16 support: newer Android Auto stub, privapp permissions and overlay from NikGapps-Addon-16-AndroidAuto-20260222 (via upstream PR #47 by alpianon), installed only on Android 16 and later (API 36+)
 
 v0.6.4 (A11, A12, A13, A14, A15)
 

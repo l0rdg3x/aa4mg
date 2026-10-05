@@ -1,7 +1,7 @@
 # Status
 
 ## Done
-- Android 16 support (stub, privapp permissions, overlay from NikGapps 20260222), installed only on API 36+ (d67a694).
+- Android 16 support (stub, privapp permissions, overlay from NikGapps 20260222), installed only on API 36+ (d67a694): implemented and simulation-tested; on-device validation pending.
 - Install simulation test: `tests/install-test.sh`.
 
 ## In progress
@@ -13,4 +13,4 @@
 - README: KernelSU-Next metamodule, "Umount modules" for Android Auto / XLauncher Unlocked, Zygisk + LSPosed (Vector).
 - phenotype.db is ignored by microG; minimum microG version for Car App Library apps.
 - Stale oat/ (odex/vdex) for the pre-2025 stub on Android 11-15.
-- Next release: version number, update.json zipUrl/changelog pointing to this fork.
+- Next release: version number, update.json zipUrl/changelog and README install/update links pointing to this fork.
