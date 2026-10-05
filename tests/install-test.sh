@@ -177,6 +177,25 @@ check_warning() {
     [ -n "$r" ] && [ "$w" -lt "$r" ] || fail "metamodule warning is not printed before the re-boot lines"
 }
 
+# check_prompts CASEDIR yes|no
+check_prompts() {
+    local dir=$1 answer=$2 n
+    grep -qF -- 'Stubs are fake placeholder apps. Answer YES only for' "$dir/log" || fail "stub explanation missing from the log"
+    local prompts timeouts
+    prompts=$(grep -cE '^\*\*\* (Install |Overwrite pre-existing)' "$dir/log" || true)
+    timeouts=$(grep -cF -- 'Please answer within 30 seconds or' "$dir/log" || true)
+    [ "$prompts" -ge 4 ] && [ "$timeouts" = "$prompts" ] || fail "expected one 30 second timeout per prompt, got $timeouts timeouts for $prompts prompts"
+    ! grep -qE 'within (10|20) seconds or' "$dir/log" || fail "prompt with a timeout other than 30 seconds"
+    if [ "$answer" = no ]; then
+        grep -qxF -- 'Skipped:' "$dir/log" || fail "Skipped list missing although answer was no"
+        for n in "Google Maps stub" "Google Speech Services stub" "Google Search stub" "Android Auto - XLauncher Unlocked"; do
+            grep -qxF -- "    $n" "$dir/log" || fail "skipped item '$n' not listed"
+        done
+    else
+        ! grep -qF -- 'Skipped:' "$dir/log" || fail "Skipped list printed although answer was yes"
+    fi
+}
+
 check_working_tree_case() {
     local api=$1 answer=$2
     local dir=$W/case/worktree-$api-$answer
@@ -185,6 +204,7 @@ check_working_tree_case() {
     [ "$(cat "$dir/rc")" = 0 ] || fail "installer exited with status $(cat "$dir/rc")"
     grep -q 'Installation of' "$dir/log" || fail "log does not contain 'Installation of'"
     check_warning "$dir" absent
+    check_prompts "$dir" "$answer"
     [ ! -e "$MOD/api36" ] || fail "api36 directory still present after install"
 
     local stubdir
@@ -259,6 +279,7 @@ check_broken_case() {
     check_hash "$stubdir/AndroidAutoStubPrebuilt.apk" $M_STUB
     check_hash "$xml" "$want_xml"
     check_warning "$dir" absent
+    check_prompts "$dir" yes
 
     finish_case "api=36 answer=yes [broken-$kind]" "$dir/log"
 }
@@ -271,6 +292,7 @@ check_ksu_case() {
     [ "$(cat "$dir/rc")" = 0 ] || fail "installer exited with status $(cat "$dir/rc")"
     grep -q 'Installation of' "$dir/log" || fail "log does not contain 'Installation of'"
     check_warning "$dir" "$want"
+    check_prompts "$dir" yes
     # Payload (adb/modules_update/aa4mg and the rest of data/) must equal the default case's, apart from
     # the metamodule fixture paths (adb/metamodule and everything under adb/modules/).
     local f='  adb/(metamodule$|modules/)'
