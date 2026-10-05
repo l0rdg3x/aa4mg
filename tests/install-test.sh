@@ -60,9 +60,12 @@ rm "$W/tree/broken-stub/api36/priv-app/AndroidAutoStubPrebuilt/AndroidAutoStubPr
 make_manifest() {
     (
         cd "$1/data"
-        find . -mindepth 1 -type d -printf '%P/\n'
+        find . -mindepth 1 -type d -printf '%m  %P/\n'
         find . -type l -printf 'L %l  %P\n'
-        find . -type f -exec sha256sum {} + | sed 's|  \./|  |'
+        find . -type f -print0 | while IFS= read -r -d '' f; do
+            h=$(sha256sum < "$f")
+            printf '%s %s  %s\n' "${h%% *}" "$(stat -c %a "$f")" "${f#./}"
+        done
     ) | LC_ALL=C sort
 }
 
