@@ -13,4 +13,4 @@
 - README: KernelSU-Next metamodule, "Umount modules" for Android Auto / XLauncher Unlocked, Zygisk + LSPosed (Vector).
 - phenotype.db is ignored by microG; minimum microG version for Car App Library apps.
 - Stale oat/ (odex/vdex) for the pre-2025 stub on Android 11-15.
-- Decide where updateJson points (upstream vs this fork) and the next version number.
+- Next release: version number, update.json zipUrl/changelog pointing to this fork.
