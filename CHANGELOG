@@ -5,6 +5,7 @@ Unreleased (A11, A12, A13, A14, A15, A16)
 - Explain in the installer what the stubs are, list the skipped stubs in the summary, and show a 30 s timeout on the YES/NO prompts
 - README: document KernelSU / KernelSU-Next (metamodule, Zygisk provider + Vector, "Umount modules"), the Stubs section, Troubleshooting and Recovery, and the Aurora `Root installer` advice
 - README: fix the step 8 list formatting (upstream PR #40 by cnjhb)
+- README: rewrite "3rd party apps" from a device test: media apps need only Unknown Sources; navigation and IoT apps need the XLauncher module (Android Auto as only scope) or Aurora's microG install method; root/shell "install as Play Store" methods are no longer recommended for them; Magisk users are pointed to Vector instead of the original LSPosed
 
 v0.6.4 (A11, A12, A13, A14, A15)
 
