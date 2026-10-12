@@ -78,34 +78,43 @@ manually open Settings and grant all available permissions to the Android Auto a
 Then unplug and re-plug your device.
 
 ## 3rd party apps
-Tested on Android 16 (LineageOS 23.2) with microG 0.3.17, KernelSU-Next and Vector.
+The steps below were tested on Android 16 (LineageOS 23.2) with microG 0.3.17, KernelSU-Next, ReZygisk and Vector.
+The Magisk steps and the "Umount modules" advice are untested.
 
 #### Media and messaging apps
-Music, podcast, video and messaging apps only need `Unknown sources` enabled in the Android Auto developer settings
+Music, podcast and messaging apps only need `Unknown Sources` enabled in the Android Auto developer settings
 (Installation, step 8). They do not need to come from the Play Store. If apps disappear, first check that
-`Unknown sources` is still enabled: a user reported that an Android Auto update turned the developer settings off
+`Unknown Sources` is still enabled: a user reported that an Android Auto update turned the developer settings off
 (XLauncher Unlocked issue #4).
 
 #### Navigation, IoT and other templated apps
 Android Auto asks the Play Store whether these apps were installed through it. microG does not answer that check, and
 Android Auto then hides apps whose install record does not point to the Play Store
-(`CAR.VALIDATOR: Package DENIED` in logcat). Two ways to make them appear:
+(`CAR.VALIDATOR: Package DENIED` in logcat). Two ways to make them appear (this concerns third-party apps; for
+Android Auto itself follow Installation, step 4):
 
-- **XLauncher Unlocked's Xposed module (recommended)**: works for apps installed from F-Droid, Aurora or other stores. The
-  module makes Android Auto see the Play Store as the app that started each installation. Enable it for
-  **Android Auto only**: the module ignores every other app, so adding more apps to its scope only exposes them to
-  Xposed. Then restart Android Auto (reboot, or `am force-stop com.google.android.projection.gearhead` as root).
+- **XLauncher Unlocked's Xposed module (recommended)**: aa4mg installs XLauncher Unlocked if you answer YES during
+  installation, or get it from [its repository](https://github.com/Rikj000/Android-Auto-XLauncher-Unlocked). It works
+  for apps installed from F-Droid, Aurora or other stores, with `Unknown Sources` still enabled. The module makes
+  Android Auto see the Play Store as the app that started each installation. Enable it for **Android Auto only**: the
+  module ignores every other app, so adding more apps to its scope only exposes them to Xposed. Then restart Android
+  Auto (reboot, or Settings => Apps => Android Auto => Force stop).
 - **Without Xposed**: install the app with [Aurora Store](https://gitlab.com/AuroraOSS/AuroraStore) using the `microG`
-  installation method (microG 0.3.10 or later according to microG issue #3030; tested with 0.3.17), so that the Play Store is recorded both as installer and as
-  the app that started the installation. Root or shell installs (`pm install -i com.android.vending`, App Manager,
-  Aurora's `Root installer`) can only set the installer: Android always records the shell as the app that started
-  them, which a user reported is not enough for navigation apps (microG issue #3030).
+  installation method (microG 0.3.10 or later according to microG issue #3030; tested with 0.3.17), so that the Play
+  Store is recorded both as installer and as the app that started the installation. This only works for apps listed
+  on the Play Store. Uninstall a copy from another store first (it has a different signature), and update the app the
+  same way: an update from another store records that store again.
+  Root or shell installs (`pm install -i com.android.vending`, App Manager, Aurora's `Root installer`) can only set
+  the installer, not the app that started the installation: Android 14 and later record the shell there, Android 11 to
+  13 record no app. A user reported that the shell is not enough for navigation apps (microG issue #3030); Android 11
+  to 13 is untested.
 
 **Magisk**
 
 1. Magisk => Settings => Magisk => Check `Zygisk`
-2. Install [LSPosed (Zygisk) + Shamiko](https://lsposed.org/)
-3. LSPosed => Modules => Android Auto - XLauncher Unlocked
+2. Install [Vector](https://github.com/JingMatrix/Vector), the maintained LSPosed fork (the original
+   [LSPosed](https://lsposed.org/) supports Android 8.1 to 14 only)
+3. In the LSPosed manager => Modules => Android Auto - XLauncher Unlocked
     - Check `Enable module`
     - Check `Android Auto` (only)
 4. Reboot

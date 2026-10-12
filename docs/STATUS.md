@@ -1,7 +1,7 @@
 # Status
 
 ## Done
-- Android 16 support (stub, privapp permissions, overlay from NikGapps 20260222), installed only on API 36+ (d67a694): implemented and simulation-tested; on-device validation pending.
+- Android 16 support (stub, privapp permissions, overlay from NikGapps 20260222), installed only on API 36+ (d67a694): implemented and simulation-tested; the maintainer reported on 2026-10-12 that Android Auto works with this build on the Nothing Phone 2 (detailed read-only checks not reported).
 - Install simulation test: `tests/install-test.sh`.
 - Installer warns when KernelSU has no metamodule: implemented, simulation-tested; device validation pending.
 - Installer explains the stubs, lists skipped items and uses 30 s prompts: implemented, simulation-tested; device validation pending.
@@ -10,7 +10,8 @@
   appear; verified on Nothing Phone 2, LineageOS 23.2, microG 0.3.17, KernelSU-Next + Hybrid Mount, ReZygisk + Vector.
 
 ## In progress
-- On-device validation on Nothing Phone 2, LineageOS 23.2, microG, KernelSU-Next 3 + Hybrid Mount.
+- Detailed on-device checks for the Android 16 files (hashes, overlay, projection role, logcat) not reported yet.
+- Untested README paths: Magisk + Vector; root/shell installs on Android 11-13; Aurora's microG install method verified with one app only (Car Scanner).
 - README KernelSU advice: the Zygisk provider + Vector steps are device-verified (ReZygisk + Vector); only the "Umount modules" advice for XLauncher Unlocked and Android Auto is not yet device-tested.
 
 ## Next (proposed, not started)
