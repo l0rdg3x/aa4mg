@@ -82,20 +82,21 @@ Tested on Android 16 (LineageOS 23.2) with microG 0.3.17, KernelSU-Next and Vect
 
 #### Media and messaging apps
 Music, podcast, video and messaging apps only need `Unknown sources` enabled in the Android Auto developer settings
-(Installation, step 8). They do not need to come from the Play Store. Android Auto updates may turn the developer
-settings off again; check them first if apps disappear after an update.
+(Installation, step 8). They do not need to come from the Play Store. If apps disappear, first check that
+`Unknown sources` is still enabled: a user reported that an Android Auto update turned the developer settings off
+(XLauncher Unlocked issue #4).
 
 #### Navigation, IoT and other templated apps
-Android Auto asks the Play Store whether these apps were installed through it. microG does not answer that check, so
-Android Auto falls back to the app's install record and hides apps that do not look installed by the Play Store
+Android Auto asks the Play Store whether these apps were installed through it. microG does not answer that check, and
+Android Auto then hides apps whose install record does not point to the Play Store
 (`CAR.VALIDATOR: Package DENIED` in logcat). Two ways to make them appear:
 
-- **XLauncher Unlocked's Xposed module (recommended)**: works for apps from any store (F-Droid, Aurora, ...). The
+- **XLauncher Unlocked's Xposed module (recommended)**: works for apps installed from F-Droid, Aurora or other stores. The
   module makes Android Auto see the Play Store as the app that started each installation. Enable it for
   **Android Auto only**: the module ignores every other app, so adding more apps to its scope only exposes them to
   Xposed. Then restart Android Auto (reboot, or `am force-stop com.google.android.projection.gearhead` as root).
 - **Without Xposed**: install the app with [Aurora Store](https://gitlab.com/AuroraOSS/AuroraStore) using the `microG`
-  installation method (microG Companion 0.3.10 or later), so that the Play Store is recorded both as installer and as
+  installation method (microG 0.3.10 or later according to microG issue #3030; tested with 0.3.17), so that the Play Store is recorded both as installer and as
   the app that started the installation. Root or shell installs (`pm install -i com.android.vending`, App Manager,
   Aurora's `Root installer`) can only set the installer: Android always records the shell as the app that started
   them, which a user reported is not enough for navigation apps (microG issue #3030).
