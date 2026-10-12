@@ -5,6 +5,7 @@ Unreleased (A11, A12, A13, A14, A15, A16)
 - Explain in the installer what the stubs are, list the skipped stubs in the summary, and show a 30 s timeout on the YES/NO prompts
 - README: document KernelSU / KernelSU-Next (metamodule, Zygisk provider + Vector, "Umount modules"), the Stubs section, Troubleshooting and Recovery, and the Aurora `Root installer` advice
 - README: fix the step 8 list formatting (upstream PR #40 by cnjhb)
+- README: how to show navigation and IoT apps on microG (XLauncher module with Android Auto as only scope), tested on a device
 
 v0.6.4 (A11, A12, A13, A14, A15)
 

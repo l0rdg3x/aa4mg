@@ -78,23 +78,27 @@ manually open Settings and grant all available permissions to the Android Auto a
 Then unplug and re-plug your device.
 
 ## 3rd party apps
+Tested on Android 16 (LineageOS 23.2) with microG 0.3.17, KernelSU-Next and Vector.
 
-#### Android Auto won't show apps not installed through Google Play Store.
-To mitigate this, first un-install the app, then you can use following ways to "install as Google Play Store".
+#### Media and messaging apps
+Music, podcast, video and messaging apps only need `Unknown sources` enabled in the Android Auto developer settings
+(Installation, step 8). They do not need to come from the Play Store. Android Auto updates may turn the developer
+settings off again; check them first if apps disappear after an update.
 
-- **Play Store APKs**: Use [Aurora Store](https://gitlab.com/AuroraOSS/AuroraStore) + `Root installer` or `Aurora Services` as the installation method, works for single + split APKs.
-- **Non Play Store APKs**: Use [King Installer](https://github.com/Rikj000/KingInstaller), works for single APK.
-- Or use **direct Android Shell install**, works for single APK:   
-    ```bash
-    pm install -i "com.android.vending" <apk>
-    ```
-- **Split APKs**: Use [AppManager](https://github.com/MuntashirAkon/AppManager), in the settings in `Installer => Installer App` choose microG Companion or manually enter `com.android.vending` before installing the APK.
+#### Navigation, IoT and other templated apps
+Android Auto asks the Play Store whether these apps were installed through it. microG does not answer that check, so
+Android Auto falls back to the app's install record and hides apps that do not look installed by the Play Store
+(`CAR.VALIDATOR: Package DENIED` in logcat). Two ways to make them appear:
 
-#### Android Auto still won't show some apps.
-Some apps have additional restrictions applied on them by AA,
-which leads to them still not showing up, even if "installed as Google Play Store".
-
-To unlock these apps we'll use the Xposed module, included by [Android Auto - XLauncher Unlocked](https://github.com/Rikj000/Android-Auto-XLauncher-Unlocked)
+- **XLauncher Unlocked's Xposed module (recommended)**: works for apps from any store (F-Droid, Aurora, ...). The
+  module makes Android Auto see the Play Store as the app that started each installation. Enable it for
+  **Android Auto only**: the module ignores every other app, so adding more apps to its scope only exposes them to
+  Xposed. Then restart Android Auto (reboot, or `am force-stop com.google.android.projection.gearhead` as root).
+- **Without Xposed**: install the app with [Aurora Store](https://gitlab.com/AuroraOSS/AuroraStore) using the `microG`
+  installation method (microG Companion 0.3.10 or later), so that the Play Store is recorded both as installer and as
+  the app that started the installation. Root or shell installs (`pm install -i com.android.vending`, App Manager,
+  Aurora's `Root installer`) can only set the installer: Android always records the shell as the app that started
+  them, which a user reported is not enough for navigation apps (microG issue #3030).
 
 **Magisk**
 
@@ -102,7 +106,7 @@ To unlock these apps we'll use the Xposed module, included by [Android Auto - XL
 2. Install [LSPosed (Zygisk) + Shamiko](https://lsposed.org/)
 3. LSPosed => Modules => Android Auto - XLauncher Unlocked
     - Check `Enable module`
-    - Check `Android Auto`
+    - Check `Android Auto` (only)
 4. Reboot
 
 **KernelSU / KernelSU-Next**
@@ -112,7 +116,7 @@ KernelSU has no built-in Zygisk, so you need a Zygisk provider ([NeoZygisk](http
 1. Install a Zygisk provider and Vector, then reboot
 2. In the LSPosed manager => Modules => Android Auto - XLauncher Unlocked
     - Check `Enable module`
-    - Check `Android Auto`
+    - Check `Android Auto` (only)
 3. Reboot
 
 If XLauncher Unlocked does not open, turn off 'Umount modules' for XLauncher Unlocked and Android Auto in the KernelSU App Profile.
