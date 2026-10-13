@@ -5,6 +5,7 @@ It is intended to be used on de-googled devices running MicroG!
 
 It supports Android 16 and later only: on older releases the installer stops with an error.
 Magisk, the original KernelSU and APatch are not supported and not tested.
+If you upgrade to Android 16 with aa4mg already installed, install aa4mg again after the upgrade: the module keeps the files chosen for the Android release it was installed on.
 
 If you instead prefer a non-root solution to be built into your own rom, please have a look at [Android Auto as user app with media apps support](https://github.com/sn-00-x/android-auto)
 

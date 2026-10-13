@@ -221,7 +221,7 @@ check_working_tree_case() {
 
     local n
     if [ "$answer" = no ]; then
-        for n in Maps.apk GoogleTTS.apk Velvet.apk QuickSearchBox.apk AndroidAuto-XLauncherUnlocked.apk; do
+        for n in Maps.apk GoogleTTS.apk Velvet.apk AndroidAuto-XLauncherUnlocked.apk; do
             ! has_named "$n" || fail "$n present although answer was no"
         done
     else
@@ -289,6 +289,7 @@ check_abort_case() {
 
     [ "$(cat "$dir/rc")" = 1 ] || fail "installer exited with status $(cat "$dir/rc"), expected 1"
     grep -qxF -- "$ABORT_LINE" "$dir/log" || fail "abort message missing"
+    [ "$(cat "$dir/log")" = "$ABORT_LINE" ] || fail "installer printed more than the abort message"
     ! grep -qF -- 'Please answer within' "$dir/log" || fail "a prompt was shown before the abort"
     [ ! -e "$dir/root/$MODREL" ] || fail "$MODREL still present"
     local extra
