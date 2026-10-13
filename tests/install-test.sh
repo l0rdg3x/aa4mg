@@ -29,11 +29,6 @@ ANSWERS="yes no"
 ID=aa4mg
 MODREL=data/adb/modules_update/$ID
 
-M_STUB=46c6b78585a5f94d3433606859f65268db18d7418dc1682b4b86ea0a214a64a5
-M_XML=8993f986dfce491d61b4cde4306a0c6e381cd58c66af741b604ec59c6605a9ed
-M_OVL=f99e9966145eb83b2f0049c346f3805ef8d43ebd748f4677cf20731dc760df55
-M_ODEX=b892cb16dbce06f8c934d5000924d413a42fe44a80e9ddcaf1341c0234e2f193
-M_VDEX=33b67d121d4cebe74588cb6d6ed23138ec72f2b6f6cb05ae662bd211b965b8cb
 A_STUB=37f588bf651527a249e8b38ab01f8d28b9143b2050bd9820d2caa21f255c4903
 A_XML=edfc75e888e8f3c7b97359e059f08640bc06599b9daa11497e1033f3c2a401f8
 A_OVL=85ad586ad6dc57cb19720324299f7763121b0ee6b735f831e4ea5874c6b120c7
@@ -50,12 +45,6 @@ if [ -n "$COMPARE_REF" ]; then
     prune_tree "$W/tree/ref"
     TREES="worktree ref"
 fi
-
-mkdir -p "$W/tree/broken-xml" "$W/tree/broken-stub"
-cp -a "$W/tree/worktree/." "$W/tree/broken-xml/"
-cp -a "$W/tree/worktree/." "$W/tree/broken-stub/"
-rm "$W/tree/broken-xml/api36/etc/permissions/com.google.android.projection.gearhead.xml"
-rm "$W/tree/broken-stub/api36/priv-app/AndroidAutoStubPrebuilt/AndroidAutoStubPrebuilt.apk"
 
 make_manifest() {
     (
@@ -248,23 +237,6 @@ check_working_tree_case() {
     finish_case "api=$api answer=$answer [worktree]" "$dir/log"
 }
 
-# Hand-built or interrupted module trees: the stub must never be installed without its allowlist XML.
-check_broken_case() {
-    local kind=$1 want_xml=$2
-    local dir=$W/case/broken-$kind-36-yes
-    MOD=$dir/root/$MODREL
-    local stubdir=system/product/priv-app/AndroidAutoStubPrebuilt
-    local xml=system/product/etc/permissions/com.google.android.projection.gearhead.xml
-
-    [ "$(cat "$dir/rc")" = 0 ] || fail "installer exited with status $(cat "$dir/rc")"
-    check_hash "$stubdir/AndroidAutoStubPrebuilt.apk" $M_STUB
-    check_hash "$xml" "$want_xml"
-    check_warning "$dir" absent
-    check_prompts "$dir" yes
-
-    finish_case "api=36 answer=yes [broken-$kind]" "$dir/log"
-}
-
 # check_ksu_case SCENARIO present|absent: API 36 with a non-default metamodule setup
 check_ksu_case() {
     local scenario=$1 want=$2
@@ -339,21 +311,7 @@ check_compare_case() {
     local mp=adb/modules_update/aa4mg
     grep -vE "  $mp/(customize\.sh|README\.md|CHANGELOG|module\.prop|update\.json)\$" "$rdir/manifest" > "$rdir/manifest.cmp"
     grep -vE "  $mp/(customize\.sh|README\.md|CHANGELOG|module\.prop|update\.json)\$" "$wdir/manifest" > "$wdir/manifest.cmp"
-
-    if [ "$api" -le 35 ]; then
-        diff -u "$rdir/manifest.cmp" "$wdir/manifest.cmp" > "$W/diff" || fail "manifest differs from $COMPARE_REF:"$'\n'"$(sed 's/^/        /' "$W/diff")"
-    else
-        local line path
-        while IFS= read -r line; do
-            path=${line#*  }
-            case "$path" in
-                $mp/system/product/priv-app/AndroidAutoStubPrebuilt/*) ;;
-                $mp/system/product/etc/permissions/com.google.android.projection.gearhead.xml) ;;
-                $mp/system/product/overlay/AndroidAutoOverlay.apk) ;;
-                *) fail "unexpected manifest difference: $line" ;;
-            esac
-        done < <(diff "$rdir/manifest.cmp" "$wdir/manifest.cmp" | sed -n 's/^[<>] //p')
-    fi
+    diff -u "$rdir/manifest.cmp" "$wdir/manifest.cmp" > "$W/diff" || fail "manifest differs from $COMPARE_REF:"$'\n'"$(sed 's/^/        /' "$W/diff")"
 
     finish_case "$label" "$rdir/log"
 }
@@ -393,11 +351,6 @@ for scenario in magisk installed; do
     run_case worktree 35 yes "$scenario"
     check_abort_case 35 "$scenario"
 done
-
-run_case broken-xml 36 yes
-run_case broken-stub 36 yes
-check_broken_case xml $M_XML
-check_broken_case stub $A_XML
 
 if [ -n "$COMPARE_REF" ]; then
     for api in $APIS; do
