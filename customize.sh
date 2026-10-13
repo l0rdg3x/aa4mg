@@ -1,5 +1,7 @@
 #!/bin/bash
 
+[ "$API" -ge 36 ] 2>/dev/null || abort "! aa4mg requires Android 16 or later (API 36+)"
+
 # Define "detect Volume key input" helper
 chooseport() {
     [ -n "$1" ] && local DELAY=$1 || local DELAY=10
@@ -167,35 +169,6 @@ if [ ! -f "${PHENOTYPE_PB_PATH}com.google.android.projection.gearhead.pb" ] ; th
     # Restore correct ownership
     chown -R "$AA_OWNER" "$AA_PATH"files/
     chgrp -R "$AA_GROUP" "$AA_PATH"files/
-fi
-
-# Android 16 needs the newer stub with its matching privapp permissions, and the
-# overlay rebuilt for API 36 (NikGapps-Addon-16-AndroidAuto-20260222).
-# The overlay requires API 36, so older releases keep the previous files.
-if [ $API -ge 36 ] ; then
-    rm -rf $MODPATH/system/product/priv-app/AndroidAutoStubPrebuilt/oat
-    mv -f $MODPATH/api36/etc/permissions/com.google.android.projection.gearhead.xml $MODPATH/system/product/etc/permissions/ &&
-        mv -f $MODPATH/api36/priv-app/AndroidAutoStubPrebuilt/AndroidAutoStubPrebuilt.apk $MODPATH/system/product/priv-app/AndroidAutoStubPrebuilt/
-    mv -f $MODPATH/api36/overlay/AndroidAutoOverlay.apk $MODPATH/system/product/overlay/
-fi
-rm -rf $MODPATH/api36
-
-# At this point, the module is ready for A13
-# We need to make some changes for A11 and A12
-if [ $API -lt 33 ] ; then
-    mv $MODPATH/system/product/* $MODPATH/system/
-    rm -rf $MODPATH/system/product
-fi
-
-if [ $API -lt 31 ] ; then
-    # is this really needed for A11?
-    if [ -f "$MODPATH/system/priv-app/Velvet/Velvet.apk" ] ; then
-        mkdir -p $MODPATH/system/app/QuickSearchBox
-        mv $MODPATH/system/priv-app/Velvet/Velvet.apk $MODPATH/system/app/QuickSearchBox/QuickSearchBox.apk
-        rm -rf $MODPATH/system/priv-app/Velvet
-
-        ls $MODPATH/system/app/QuickSearchBox -1
-    fi
 fi
 
 # KernelSU-Next 3.x and recent KernelSU mount module files only through a metamodule: the
