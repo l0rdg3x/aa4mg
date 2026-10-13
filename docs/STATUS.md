@@ -2,7 +2,8 @@
 
 ## Done
 - Android 16 support (stub, privapp permissions, overlay from NikGapps 20260222) (d67a694): implemented and simulation-tested; the maintainer reported on 2026-10-12 that Android Auto works with this build on the Nothing Phone 2 (detailed read-only checks not reported).
-- Android 11-15 dropped, KernelSU-Next the only supported root solution (branch drop-legacy): the installer stops below API 36; Magisk is no longer documented but not blocked. Simulation-tested: on API 36 and 37 the installed module is identical to 9b464e7 apart from the root metadata files (customize.sh, README.md, CHANGELOG, module.prop, update.json); device check pending.
+- Android 11-15 dropped, KernelSU-Next the only supported root solution (merge 03967e1): the installer stops below API 36; Magisk is no longer documented but not blocked. Simulation-tested: on API 36 and 37 the installed module is identical to 9b464e7 apart from the root metadata files (customize.sh, README.md, CHANGELOG, module.prop, update.json); device check pending.
+- README states that the fork is maintained mainly for personal use.
 - Install simulation test: `tests/install-test.sh`.
 - Installer warns when KernelSU has no metamodule: implemented, simulation-tested; device validation pending.
 - Installer explains the stubs, lists skipped items and uses 30 s prompts: implemented, simulation-tested; device validation pending.
