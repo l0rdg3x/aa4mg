@@ -1,5 +1,7 @@
 #!/bin/bash
 
+[ "$API" -ge 36 ] 2>/dev/null || abort "! aa4mg requires Android 16 or later (API 36+)"
+
 # Define "detect Volume key input" helper
 chooseport() {
     [ -n "$1" ] && local DELAY=$1 || local DELAY=10

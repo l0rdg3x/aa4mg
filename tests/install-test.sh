@@ -24,7 +24,7 @@ REPO=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)
 W=$(mktemp -d)
 trap 'rm -rf "$W"' EXIT
 
-APIS="30 31 32 33 34 35 36"
+APIS="36 37"
 ANSWERS="yes no"
 ID=aa4mg
 MODREL=data/adb/modules_update/$ID
@@ -70,11 +70,12 @@ make_manifest() {
 }
 
 WARN_LINE='*** WARNING: no KernelSU metamodule found!'
+ABORT_LINE='! aa4mg requires Android 16 or later (API 36+)'
 
 # Metamodule fixtures under data/, so they appear in every manifest. The default models KernelSU with
 # Hybrid Mount: /data/adb/metamodule is an absolute symlink to /data/adb/modules/hybrid_mount, whose
 # module.prop carries metamodule=1. Other scenarios: nometa, propfallback, dangling, magisk, phenotype (default plus a
-# pre-existing phenotype.db).
+# pre-existing phenotype.db), installed (default plus an aa4mg already installed under modules/).
 setup_metamodule() {
     local root=$1 scenario=$2 mods=$1/data/adb/modules
     mkdir -p "$mods"
@@ -93,6 +94,11 @@ setup_metamodule() {
             ln -s /data/adb/modules/hybrid_mount "$root/data/adb/metamodule"
             mkdir -p "$root/data/data/com.google.android.gms/databases"
             echo 'pre-existing phenotype.db' > "$root/data/data/com.google.android.gms/databases/phenotype.db" ;;
+        installed)
+            mkdir -p "$mods/hybrid_mount" "$mods/aa4mg"
+            printf 'id=hybrid_mount\nname=Hybrid Mount\nmetamodule=1\n' > "$mods/hybrid_mount/module.prop"
+            ln -s /data/adb/modules/hybrid_mount "$root/data/adb/metamodule"
+            printf 'id=aa4mg\nversion=installed\n' > "$mods/aa4mg/module.prop" ;;
         propfallback)
             mkdir -p "$mods/pf"
             printf 'id=pf\nmetamodule = True \n' > "$mods/pf/module.prop" ;;
@@ -122,9 +128,10 @@ run_case() {
     cp -a "$W/tree/$tree/." "$root/$MODREL/"
     (cd "$root/$MODREL/system" && find . -type d | LC_ALL=C sort) > "$dir/dirs.before"
     local rc=0
+    # ui_print and abort as in KernelSU-Next's installer.sh in boot mode: abort removes MODPATH and TMPDIR.
     unshare -r --fork chroot "$root" /bin/busybox env -i PATH=/bin ASH_STANDALONE=1 API="$api" \
         MODPATH=/data/adb/modules_update/$ID TMPDIR=/dev/tmp BOOTMODE=true "${ksu[@]}" \
-        /bin/busybox sh -c 'ui_print() { echo "$1"; }; abort() { echo "$1"; exit 1; }; . "$MODPATH/customize.sh"' \
+        /bin/busybox sh -c 'ui_print() { echo "$1"; }; abort() { echo "$1"; rm -rf "$MODPATH" "$TMPDIR"; exit 1; }; . "$MODPATH/customize.sh"' \
         > "$dir/log" 2>&1 || rc=$?
     echo "$rc" > "$dir/rc"
     (cd "$root/$MODREL/system" 2>/dev/null && find . -type d | LC_ALL=C sort) > "$dir/dirs.after" || : > "$dir/dirs.after"
@@ -214,62 +221,29 @@ check_working_tree_case() {
     check_prompts "$dir" "$answer"
     [ ! -e "$MOD/api36" ] || fail "api36 directory still present after install"
 
-    local stubdir
-    if [ "$api" -ge 33 ]; then
-        stubdir=system/product/priv-app/AndroidAutoStubPrebuilt
-        local xml=system/product/etc/permissions/com.google.android.projection.gearhead.xml
-        local ovl=system/product/overlay/AndroidAutoOverlay.apk
-        if [ "$api" -ge 36 ]; then
-            check_hash "$stubdir/AndroidAutoStubPrebuilt.apk" $A_STUB
-            check_hash "$xml" $A_XML
-            check_hash "$ovl" $A_OVL
-            if [ -d "$MOD/$stubdir" ]; then
-                [ "$(find "$MOD/$stubdir" -mindepth 1 -maxdepth 1 | wc -l)" = 1 ] \
-                    || fail "$stubdir must contain exactly one entry"
-            fi
-        else
-            check_hash "$stubdir/AndroidAutoStubPrebuilt.apk" $M_STUB
-            check_hash "$xml" $M_XML
-            check_hash "$ovl" $M_OVL
-            check_hash "$stubdir/oat/arm64/AndroidAutoStubPrebuilt.odex" $M_ODEX
-            check_hash "$stubdir/oat/arm64/AndroidAutoStubPrebuilt.vdex" $M_VDEX
-        fi
-    else
-        [ ! -e "$MOD/system/product" ] || fail "system/product still present"
-        stubdir=system/priv-app/AndroidAutoStubPrebuilt
-        check_hash "$stubdir/AndroidAutoStubPrebuilt.apk" $M_STUB
-        check_hash system/etc/permissions/com.google.android.projection.gearhead.xml $M_XML
-        check_hash system/overlay/AndroidAutoOverlay.apk $M_OVL
-        check_hash "$stubdir/oat/arm64/AndroidAutoStubPrebuilt.odex" $M_ODEX
-        check_hash "$stubdir/oat/arm64/AndroidAutoStubPrebuilt.vdex" $M_VDEX
+    local stubdir=system/product/priv-app/AndroidAutoStubPrebuilt
+    check_hash "$stubdir/AndroidAutoStubPrebuilt.apk" $A_STUB
+    check_hash system/product/etc/permissions/com.google.android.projection.gearhead.xml $A_XML
+    check_hash system/product/overlay/AndroidAutoOverlay.apk $A_OVL
+    if [ -d "$MOD/$stubdir" ]; then
+        [ "$(find "$MOD/$stubdir" -mindepth 1 -maxdepth 1 | wc -l)" = 1 ] \
+            || fail "$stubdir must contain exactly one entry"
     fi
 
+    local n
     if [ "$answer" = no ]; then
-        local n
         for n in Maps.apk GoogleTTS.apk Velvet.apk QuickSearchBox.apk AndroidAuto-XLauncherUnlocked.apk; do
             ! has_named "$n" || fail "$n present although answer was no"
         done
     else
-        local n
-        for n in Maps.apk GoogleTTS.apk AndroidAuto-XLauncherUnlocked.apk; do
+        for n in Maps.apk GoogleTTS.apk Velvet.apk AndroidAuto-XLauncherUnlocked.apk; do
             has_named "$n" || fail "$n missing although answer was yes"
         done
-        if [ "$api" -ge 31 ]; then
-            has_named Velvet.apk || fail "Velvet.apk missing although answer was yes"
-        else
-            check_exists system/app/QuickSearchBox/QuickSearchBox.apk
-        fi
     fi
 
-    if [ "$api" -ge 31 ]; then
-        local before=$dir/dirs.before extra
-        if [ "$api" -le 32 ]; then
-            sed -e 's#^\./product$#.#' -e 's#^\./product/#./#' "$dir/dirs.before" | LC_ALL=C sort -u > "$dir/dirs.before.mapped"
-            before=$dir/dirs.before.mapped
-        fi
-        extra=$(LC_ALL=C comm -13 "$before" "$dir/dirs.after")
-        [ -z "$extra" ] || fail "directories created by customize.sh under system/: $(echo $extra)"
-    fi
+    local extra
+    extra=$(LC_ALL=C comm -13 "$dir/dirs.before" "$dir/dirs.after")
+    [ -z "$extra" ] || fail "directories created by customize.sh under system/: $(echo $extra)"
 
     finish_case "api=$api answer=$answer [worktree]" "$dir/log"
 }
@@ -333,6 +307,28 @@ check_phenotype_case() {
     finish_case "api=36 answer=$answer [phenotype-exists]" "$dir/log"
 }
 
+# check_abort_case API [SCENARIO]: below Android 16 the installer must stop before any prompt, leave no module
+# directory behind and write nothing under data/ apart from the fixtures.
+check_abort_case() {
+    local api=$1 scenario=${2:-default}
+    local dir=$W/case/worktree-$api-yes
+    [ "$scenario" = default ] || dir=$dir-$scenario
+    local label="api=${api:-empty} answer=yes [abort${2:+ $2}]"
+
+    [ "$(cat "$dir/rc")" = 1 ] || fail "installer exited with status $(cat "$dir/rc"), expected 1"
+    grep -qxF -- "$ABORT_LINE" "$dir/log" || fail "abort message missing"
+    ! grep -qF -- 'Please answer within' "$dir/log" || fail "a prompt was shown before the abort"
+    [ ! -e "$dir/root/$MODREL" ] || fail "$MODREL still present"
+    local extra
+    extra=$(cd "$dir/root/data" && find . -type f | grep -vE '^\./adb/modules/[^/]+/module\.prop$' || true)
+    [ -z "$extra" ] || fail "files written under data/: $(echo $extra)"
+    if [ "$scenario" = installed ]; then
+        [ "$(cat "$dir/root/data/adb/modules/aa4mg/module.prop")" = "$(printf 'id=aa4mg\nversion=installed')" ] \
+            || fail "installed module.prop changed"
+    fi
+    finish_case "$label" "$dir/log"
+}
+
 check_compare_case() {
     local api=$1 answer=$2
     local wdir=$W/case/worktree-$api-$answer rdir=$W/case/ref-$api-$answer
@@ -387,6 +383,15 @@ check_ksu_case magisk absent
 for answer in $ANSWERS; do
     run_case worktree 36 "$answer" phenotype
     check_phenotype_case "$answer"
+done
+
+for api in 30 35 ""; do
+    run_case worktree "$api" yes
+    check_abort_case "$api"
+done
+for scenario in magisk installed; do
+    run_case worktree 35 yes "$scenario"
+    check_abort_case 35 "$scenario"
 done
 
 run_case broken-xml 36 yes
