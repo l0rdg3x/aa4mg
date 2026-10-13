@@ -3,6 +3,7 @@
 This is a [KernelSU-Next](https://github.com/KernelSU-Next/KernelSU-Next) module that provides an AA (Android Auto) stub as system app, optionally together with [XLauncher Unlocked](https://github.com/Rikj000/Android-Auto-XLauncher-Unlocked) and stubs for Google TTS, Google Maps & Google Search.
 It is intended to be used on de-googled devices running MicroG!
 
+This fork of [sn-00-x/aa4mg](https://github.com/sn-00-x/aa4mg) is maintained mainly for my personal use.
 It supports Android 16 and later only: on older releases the installer stops with an error.
 Magisk, the original KernelSU and APatch are not supported and not tested.
 If you upgrade to Android 16 with aa4mg already installed, install aa4mg again after the upgrade: the module keeps the files chosen for the Android release it was installed on.

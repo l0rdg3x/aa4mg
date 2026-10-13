@@ -1,5 +1,6 @@
 Unreleased (A16)
 
+- README: state that this fork is maintained mainly for personal use
 - Drop Android 11 to 15: the installer stops with an error below Android 16 (API 36), and the Android Auto stub, privapp permissions, overlay and oat files for older releases are removed
 - Drop Magisk from the documentation: KernelSU-Next is the only supported root solution (the installer does not block Magisk, but Magisk is not tested)
 - Add Android 16 support: newer Android Auto stub, privapp permissions and overlay from NikGapps-Addon-16-AndroidAuto-20260222 (via upstream PR #47 by alpianon)
