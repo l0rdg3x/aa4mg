@@ -1,7 +1,10 @@
-# Android Auto 4 MicroG (for A11, A12, A13, A14, A15, A16)
+# Android Auto 4 MicroG (for A16)
 
-This is a [Magisk](https://topjohnwu.github.io/Magisk/) / KernelSU module (KernelSU-Next included) that provides an AA (Android Auto) stub as system app, optionally together with [XLauncher Unlocked](https://github.com/Rikj000/Android-Auto-XLauncher-Unlocked) and stubs for Google TTS, Google Maps & Google Search.
+This is a [KernelSU-Next](https://github.com/KernelSU-Next/KernelSU-Next) module that provides an AA (Android Auto) stub as system app, optionally together with [XLauncher Unlocked](https://github.com/Rikj000/Android-Auto-XLauncher-Unlocked) and stubs for Google TTS, Google Maps & Google Search.
 It is intended to be used on de-googled devices running MicroG!
+
+It supports Android 16 and later only: on older releases the installer stops with an error.
+Magisk, the original KernelSU and APatch are not supported and not tested.
 
 If you instead prefer a non-root solution to be built into your own rom, please have a look at [Android Auto as user app with media apps support](https://github.com/sn-00-x/android-auto)
 
@@ -11,16 +14,16 @@ If you instead prefer a non-root solution to be built into your own rom, please 
 Settings => Apps => See all apps => Android Auto => Triple dot icon *(top right corner)* => Uninstall updates
 
 **Otherwise you may end up with an un-boot-able device.**
-If the AA system app is missing *(by disabling `aa4mg` or booting without Magisk)*,
+If the AA system app is missing *(by disabling `aa4mg` or booting without KernelSU-Next)*,
 but the AA update installed is still present,
 your device may fail to boot due to permission errors!
 
 ## Installation
 
 1. Install de-googled ROM with microG (for example [LineageOS for MicroG](https://lineage.microg.org/))
-2. Install [Magisk](https://topjohnwu.github.io/Magisk/install.html), or KernelSU / KernelSU-Next.
-    *(On KernelSU-Next 3.x, and on KernelSU versions with metamodule support, module files are mounted by a metamodule such as Hybrid Mount, Meta Magic Mount or Mountify. Install one first and reboot, then install aa4mg. If you switch metamodule later, install aa4mg again.)*
-3. Install the [aa4mg](https://github.com/sn-00-x/aa4mg/releases) module through the Magisk Manager App (or the KernelSU manager) => Reboot
+2. Install [KernelSU-Next](https://github.com/KernelSU-Next/KernelSU-Next).
+    *(On KernelSU-Next 3.x, module files are mounted by a metamodule such as Hybrid Mount, Meta Magic Mount or Mountify. Install one first and reboot, then install aa4mg. If you switch metamodule later, install aa4mg again.)*
+3. Install the [aa4mg](https://github.com/sn-00-x/aa4mg/releases) module through the KernelSU-Next manager => Reboot
     *(Select the desired dependency stubs with the volume keys during the installation process. The installer prompts explain what the stubs are: answer YES only for Google apps you do not have installed, see [Stubs](#stubs))*
 4. Install [Android Auto](https://play.google.com/store/apps/details?id=com.google.android.projection.gearhead) through [Aurora Store](https://gitlab.com/AuroraOSS/AuroraStore),
     use `Root installer` (preferred) or `Aurora Services` as installation method to "install as Google Play Store".
@@ -57,12 +60,12 @@ On ROMs de-bloated by hiding system apps (for example with a de-bloater module),
 
 Once the installation is complete:
 - [Android Auto](https://play.google.com/store/apps/details?id=com.google.android.projection.gearhead) can be updated through [Aurora Store](https://gitlab.com/AuroraOSS/AuroraStore).
-- [aa4mg](https://github.com/sn-00-x/aa4mg) can be updated through the Magisk or KernelSU manager
+- [aa4mg](https://github.com/sn-00-x/aa4mg) can be updated through the KernelSU-Next manager
 
 ## Uninstall
 
 1. Settings => Apps => See all apps => Android Auto => Triple dot icon *(top right corner)* => Uninstall updates
-2. Magisk or KernelSU manager => Modules => Remove "Android Auto 4 microG" => Reboot
+2. KernelSU-Next manager => Modules => Remove "Android Auto 4 microG" => Reboot
 
 ## First steps
 
@@ -79,7 +82,7 @@ Then unplug and re-plug your device.
 
 ## 3rd party apps
 The steps below were tested on Android 16 (LineageOS 23.2) with microG 0.3.17, KernelSU-Next, ReZygisk and Vector.
-The Magisk steps and the "Umount modules" advice are untested.
+The "Umount modules" advice is untested.
 
 #### Media and messaging apps
 Music, podcast and messaging apps only need `Unknown Sources` enabled in the Android Auto developer settings
@@ -105,23 +108,12 @@ Android Auto itself follow Installation, step 4):
   on the Play Store. Uninstall a copy from another store first (it has a different signature), and update the app the
   same way: an update from another store records that store again.
   Root or shell installs (`pm install -i com.android.vending`, App Manager, Aurora's `Root installer`) can only set
-  the installer, not the app that started the installation: Android 14 and later record the shell there, Android 11 to
-  13 record no app. A user reported that the shell is not enough for navigation apps (microG issue #3030); Android 11
-  to 13 is untested.
+  the installer, not the app that started the installation: Android 16 records the shell there. A user reported that
+  the shell is not enough for navigation apps (microG issue #3030).
 
-**Magisk**
+**KernelSU-Next**
 
-1. Magisk => Settings => Magisk => Check `Zygisk`
-2. Install [Vector](https://github.com/JingMatrix/Vector), the maintained LSPosed fork (the original
-   [LSPosed](https://lsposed.org/) supports Android 8.1 to 14 only)
-3. In the LSPosed manager => Modules => Android Auto - XLauncher Unlocked
-    - Check `Enable module`
-    - Check `Android Auto` (only)
-4. Reboot
-
-**KernelSU / KernelSU-Next**
-
-KernelSU has no built-in Zygisk, so you need a Zygisk provider ([NeoZygisk](https://github.com/JingMatrix/NeoZygisk), [ReZygisk](https://github.com/PerformanC/ReZygisk) or [ZygiskNext](https://github.com/LSPosed/ZygiskNext)) plus a maintained LSPosed fork: [JingMatrix's](https://github.com/JingMatrix/Vector), now named Vector.
+KernelSU-Next has no built-in Zygisk, so you need a Zygisk provider ([NeoZygisk](https://github.com/JingMatrix/NeoZygisk), [ReZygisk](https://github.com/PerformanC/ReZygisk) or [ZygiskNext](https://github.com/LSPosed/ZygiskNext)) plus a maintained LSPosed fork: [JingMatrix's](https://github.com/JingMatrix/Vector), now named Vector.
 
 1. Install a Zygisk provider and Vector, then reboot
 2. In the LSPosed manager => Modules => Android Auto - XLauncher Unlocked
@@ -129,7 +121,7 @@ KernelSU has no built-in Zygisk, so you need a Zygisk provider ([NeoZygisk](http
     - Check `Android Auto` (only)
 3. Reboot
 
-If XLauncher Unlocked does not open, turn off 'Umount modules' for XLauncher Unlocked and Android Auto in the KernelSU App Profile.
+If XLauncher Unlocked does not open, turn off 'Umount modules' for XLauncher Unlocked and Android Auto in the KernelSU-Next App Profile.
 
 ## Can not open Android Auto
 If you can not directly open the AA app after installation,
@@ -149,7 +141,6 @@ then you can still access the AA settings through either of below ways:
 
 If the device does not boot after installing or enabling aa4mg, boot with modules disabled and then remove aa4mg. Once the phone boots, uninstall the Android Auto updates before removing aa4mg. If updates were already installed, booting with modules disabled may also fail (see [Warning](#warning)).
 
-- **Magisk safe mode:** Magisk disables all modules when Volume Down is held continuously for more than 3 seconds while it checks at early boot. This check happens earlier than the system's own Safe Mode detection, so the key must be held from before the boot animation starts. The Magisk FAQ (`docs/faq.md` in the Magisk repository) describes the timing.
 - **KernelSU-Next safe mode:** KernelSU-Next disables all modules when it counts at least 3 Volume Down key presses during early boot. The exact timing is not documented, so you may need to try a few times.
 - **Recovery shell:** with `/data` decrypted, create the file `/data/adb/modules/aa4mg/disable`, or delete the directory `/data/adb/modules/aa4mg`.
 
