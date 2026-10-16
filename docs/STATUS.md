@@ -2,7 +2,7 @@
 
 ## Done
 - Android 16 support (stub, privapp permissions, overlay from NikGapps 20260222) (d67a694): implemented and simulation-tested; the maintainer reported on 2026-10-12 that Android Auto works with this build on the Nothing Phone 2 (detailed read-only checks not reported).
-- Android 11-15 dropped, KernelSU-Next the only supported root solution (merge 03967e1): the installer stops below API 36; Magisk is no longer documented but not blocked. Simulation-tested: on API 36 and 37 the installed module is identical to 9b464e7 apart from the root metadata files (customize.sh, README.md, CHANGELOG, module.prop, update.json); device check pending.
+- Android 11-15 dropped, KernelSU-Next the only supported root solution (merge 03967e1): the installer stops below API 36; Magisk is no longer documented but not blocked. Simulation-tested: on API 36 and 37 the installed module is identical to 9b464e7 apart from the root metadata files (customize.sh, README.md, CHANGELOG, module.prop, update.json). Device-checked on 2026-10-17 with a build of abbd97d (Nothing Phone 2, LineageOS 23.2, KernelSU-Next + Hybrid Mount): the installer accepted it and the module is active (its CHANGELOG is in /data/adb/modules/aa4mg); under /product the stub, privapp XML and overlay match the expected sha256 and the stub has no oat files; the overlay com.nikgapps.overlay.androidauto is enabled; Android Auto holds the SYSTEM_AUTOMOTIVE_PROJECTION role and is a system package. In-car test not reported yet.
 - README states that the fork is maintained mainly for personal use.
 - Install simulation test: `tests/install-test.sh`.
 - Installer warns when KernelSU has no metamodule: implemented, simulation-tested; device validation pending.
@@ -12,7 +12,7 @@
   appear; verified on Nothing Phone 2, LineageOS 23.2, microG 0.3.17, KernelSU-Next + Hybrid Mount, ReZygisk + Vector.
 
 ## In progress
-- Detailed on-device checks for the Android 16 files (hashes, overlay, projection role, logcat) not reported yet.
+- In-car test of the abbd97d build not reported yet; no logcat check of the privapp permissions done (a grep for "allowlist" only matched an unrelated ActivityTaskManager line).
 - Untested README path: Aurora's microG install method verified with one app only (Car Scanner).
 - README KernelSU-Next advice: the Zygisk provider + Vector steps are device-verified (ReZygisk + Vector); only the "Umount modules" advice for XLauncher Unlocked and Android Auto is not yet device-tested.
 - README Installation steps 6 and 7 still carry "[A15]" notes: confirm the settings paths on Android 16.
