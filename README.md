@@ -12,8 +12,9 @@ If you instead prefer a non-root solution to be built into your own rom, please 
 
 ## Warning
 
-**Before uninstalling `aa4mg`,**
-Settings => Apps => See all apps => Android Auto => Triple dot icon *(top right corner)* => Uninstall updates
+**Before uninstalling `aa4mg`,** uninstall the Android Auto updates:
+KernelSU-Next manager => Modules => "Android Auto 4 MicroG" => Action => press Volume UP (+) within 10 seconds,
+or Settings => Apps => See all apps => Android Auto => Triple dot icon *(top right corner)* => Uninstall updates
 
 **Otherwise you may end up with an un-boot-able device.**
 If the AA system app is missing *(by disabling `aa4mg` or booting without KernelSU-Next)*,
@@ -66,8 +67,9 @@ Once the installation is complete:
 
 ## Uninstall
 
-1. Settings => Apps => See all apps => Android Auto => Triple dot icon *(top right corner)* => Uninstall updates
-2. KernelSU-Next manager => Modules => Remove "Android Auto 4 microG" => Reboot
+1. Uninstall the Android Auto updates: KernelSU-Next manager => Modules => "Android Auto 4 MicroG" => Action => press Volume UP (+) within 10 seconds,
+   or Settings => Apps => See all apps => Android Auto => Triple dot icon *(top right corner)* => Uninstall updates
+2. KernelSU-Next manager => Modules => Remove "Android Auto 4 MicroG" => Reboot
 
 ## First steps
 
