@@ -116,80 +116,33 @@ else
     AAXLU="false"
 fi
 
-# Setup "vanilla" phenotype.db SQLite database, pre-patched with AA-Tweaker.
-# Used to make Android Auto + apps work correctly, can be patched further with AA-Tweaker / manually.
-ui_print ""
-
-GMS_PATH=/data/data/com.google.android.gms/
-PHENOTYPE_DB_PATH="$GMS_PATH"databases/
-COPY_PHENOTYPE_DB="true"
-
-if [ -f "${PHENOTYPE_DB_PATH}/phenotype.db" ] ; then
-    ui_print "*** Overwrite pre-existing phenotyope.db? ***"
-    ui_print ""
-    if chooseport 30 "NO"; then
-        ui_print "Overwriting phenotype.db"
-    else
-        ui_print "Keeping pre-existing phenotype.db"
-        COPY_PHENOTYPE_DB="false"
-    fi
-fi
-
-if [ "$COPY_PHENOTYPE_DB" = "true" ] ; then
-  ui_print "Creating initial 'phenotype.db'..."
-
-  GMS_OWNER=$(stat -c '%U' "$GMS_PATH")
-  GMS_GROUP=$(stat -c '%G' "$GMS_PATH")
-
-  # Create the folder if missing + Inject the phenotype.db file
-  mkdir -p "$PHENOTYPE_DB_PATH"
-  cp "$MODPATH""$PHENOTYPE_DB_PATH"phenotype.db \
-      "$PHENOTYPE_DB_PATH"phenotype.db
-
-  # Restore correct ownership
-  chown -R "$GMS_OWNER" "$PHENOTYPE_DB_PATH"
-  chgrp -R "$GMS_GROUP" "$PHENOTYPE_DB_PATH"
-fi
-
-AA_PATH=/data/data/com.google.android.projection.gearhead/
-PHENOTYPE_PB_PATH="$AA_PATH"files/phenotype/shared/
-
-if [ ! -f "${PHENOTYPE_PB_PATH}com.google.android.projection.gearhead.pb" ] ; then
-    # Setup "vanilla" com.google.android.projection.gearhead.pb binary file.
-    # CoolWalk requirement, file cannot be modified..
-    ui_print "Setting up additional dependencies..."
-    AA_OWNER=$(stat -c '%U' "$AA_PATH")
-    AA_GROUP=$(stat -c '%G' "$AA_PATH")
-
-    # Create the folder if missing + Inject the binary .pb file
-    mkdir -p "$PHENOTYPE_PB_PATH"
-    cp "$MODPATH""$PHENOTYPE_PB_PATH"com.google.android.projection.gearhead.pb \
-        "$PHENOTYPE_PB_PATH"com.google.android.projection.gearhead.pb
-
-    # Restore correct ownership
-    chown -R "$AA_OWNER" "$AA_PATH"files/
-    chgrp -R "$AA_GROUP" "$AA_PATH"files/
-fi
-
 # KernelSU-Next 3.x and recent KernelSU mount module files only through a metamodule: the
 # /data/adb/metamodule symlink to an existing module, or any module with metamodule=1|true in
 # its module.prop (KernelSU-Next userspace/ksud/src/metamodule.rs).
 NO_METAMODULE="false"
+MM_DIR=/data/adb/metamodule
 if [ "$KSU" = "true" ] && ! { [ -L /data/adb/metamodule ] && [ -d /data/adb/metamodule ]; } ; then
     NO_METAMODULE="true"
     for MM_PROP in /data/adb/modules/*/module.prop ; do
         [ -f "$MM_PROP" ] || continue
         MM_VALUE=$(sed -n 's/^[[:space:]]*metamodule[[:space:]]*=//p' "$MM_PROP" | tr -d ' \t\r' | tr 'A-Z' 'a-z')
         case "$MM_VALUE" in
-            1|true) NO_METAMODULE="false" ;;
+            1|true) NO_METAMODULE="false"; MM_DIR=${MM_PROP%/module.prop} ;;
         esac
     done
+fi
+# ksud skips the mount script of a disabled metamodule, and deletes one marked for removal at the next boot
+MM_INACTIVE="false"
+if [ "$KSU" = "true" ] && [ "$NO_METAMODULE" = "false" ] && { [ -e "$MM_DIR/disable" ] || [ -e "$MM_DIR/remove" ]; } ; then
+    MM_INACTIVE="true"
 fi
 
 # Finish installation, dependency APKs will automatically be installed on reboot
 ui_print ""
 ui_print "Installation of"
 ui_print "    Android Auto 4 MicroG"
+# The installer and the metamodule's metainstall.sh keep running in this shell, so IFS must be restored
+OLD_IFS=$IFS
 IFS=','
 for INSTALLED_APP in $INSTALLED_APPS ; do
     ui_print "    $INSTALLED_APP"
@@ -200,6 +153,7 @@ if [ -n "$SKIPPED_APPS" ] ; then
         ui_print "    $SKIPPED_APP"
     done
 fi
+IFS=$OLD_IFS
 ui_print "successfull! 🎉"
 if [ "$NO_METAMODULE" = "true" ] ; then
     ui_print ""
@@ -211,6 +165,15 @@ if [ "$NO_METAMODULE" = "true" ] ; then
     ui_print "*** work. Install a metamodule, reboot, then install ***"
     ui_print "*** aa4mg again. Older KernelSU releases that mount  ***"
     ui_print "*** modules themselves can ignore this warning.      ***"
+fi
+if [ "$MM_INACTIVE" = "true" ] ; then
+    ui_print ""
+    ui_print "*** WARNING: the KernelSU metamodule is disabled or  ***"
+    ui_print "*** marked for removal. KernelSU-Next does not mount ***"
+    ui_print "*** module files without an active metamodule, so    ***"
+    ui_print "*** Android Auto will not work. Enable or restore    ***"
+    ui_print "*** the metamodule and reboot, or install another    ***"
+    ui_print "*** one, reboot, then install aa4mg again.           ***"
 fi
 ui_print ""
 ui_print "*** Please re-boot your device,                      ***"

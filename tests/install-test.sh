@@ -59,38 +59,48 @@ make_manifest() {
 }
 
 WARN_LINE='*** WARNING: no KernelSU metamodule found!'
+INACTIVE_LINE='*** WARNING: the KernelSU metamodule is disabled or'
 ABORT_LINE='! aa4mg requires Android 16 or later (API 36+)'
 
 # Metamodule fixtures under data/, so they appear in every manifest. The default models KernelSU with
 # Hybrid Mount: /data/adb/metamodule is an absolute symlink to /data/adb/modules/hybrid_mount, whose
 # module.prop carries metamodule=1. Other scenarios: nometa, propfallback, dangling, magisk, phenotype (default plus a
-# pre-existing phenotype.db), installed (default plus an aa4mg already installed under modules/).
+# pre-existing phenotype.db), installed (default plus an aa4mg already installed under modules/), metadisabled and
+# metaremove (default with the metamodule disabled or marked for removal), propdisabled (propfallback with the
+# metamodule disabled), symlinks (default plus app data paths that are dangling symlinks into the metamodule).
+# The metamodule fixtures have no metainstall.sh: ksud refuses to install while a metamodule with one is disabled.
 setup_metamodule() {
     local root=$1 scenario=$2 mods=$1/data/adb/modules
     mkdir -p "$mods"
     case "$scenario" in
-        default)
-            mkdir -p "$mods/hybrid_mount"
-            printf 'id=hybrid_mount\nname=Hybrid Mount\nmetamodule=1\n' > "$mods/hybrid_mount/module.prop"
-            ln -s /data/adb/modules/hybrid_mount "$root/data/adb/metamodule" ;;
         nometa|dangling|magisk)
             mkdir -p "$mods/other"
             printf 'id=other\nname=Other\n' > "$mods/other/module.prop"
             [ "$scenario" != dangling ] || ln -s /data/adb/modules/gone "$root/data/adb/metamodule" ;;
-        phenotype)
+        propfallback|propdisabled)
+            mkdir -p "$mods/pf"
+            printf 'id=pf\nmetamodule = True \n' > "$mods/pf/module.prop" ;;
+        *)
             mkdir -p "$mods/hybrid_mount"
             printf 'id=hybrid_mount\nname=Hybrid Mount\nmetamodule=1\n' > "$mods/hybrid_mount/module.prop"
-            ln -s /data/adb/modules/hybrid_mount "$root/data/adb/metamodule"
+            ln -s /data/adb/modules/hybrid_mount "$root/data/adb/metamodule" ;;
+    esac
+    case "$scenario" in
+        phenotype)
             mkdir -p "$root/data/data/com.google.android.gms/databases"
             echo 'pre-existing phenotype.db' > "$root/data/data/com.google.android.gms/databases/phenotype.db" ;;
         installed)
-            mkdir -p "$mods/hybrid_mount" "$mods/aa4mg"
-            printf 'id=hybrid_mount\nname=Hybrid Mount\nmetamodule=1\n' > "$mods/hybrid_mount/module.prop"
-            ln -s /data/adb/modules/hybrid_mount "$root/data/adb/metamodule"
+            mkdir -p "$mods/aa4mg"
             printf 'id=aa4mg\nversion=installed\n' > "$mods/aa4mg/module.prop" ;;
-        propfallback)
-            mkdir -p "$mods/pf"
-            printf 'id=pf\nmetamodule = True \n' > "$mods/pf/module.prop" ;;
+        metadisabled) touch "$mods/hybrid_mount/disable" ;;
+        metaremove) touch "$mods/hybrid_mount/remove" ;;
+        propdisabled) touch "$mods/pf/disable" ;;
+        symlinks)
+            mkdir -p "$root/data/data/com.google.android.gms/databases" \
+                "$root/data/data/com.google.android.projection.gearhead/files/phenotype/shared"
+            ln -s /data/adb/modules/hybrid_mount/disable "$root/data/data/com.google.android.gms/databases/phenotype.db"
+            ln -s /data/adb/modules/hybrid_mount/remove \
+                "$root/data/data/com.google.android.projection.gearhead/files/phenotype/shared/com.google.android.projection.gearhead.pb" ;;
     esac
 }
 
@@ -118,9 +128,11 @@ run_case() {
     (cd "$root/$MODREL/system" && find . -type d | LC_ALL=C sort) > "$dir/dirs.before"
     local rc=0
     # ui_print and abort as in KernelSU-Next's installer.sh in boot mode: abort removes MODPATH and TMPDIR.
+    # IFS is recorded around customize.sh because the installer and metainstall.sh keep running in the same shell.
     unshare -r --fork chroot "$root" /bin/busybox env -i PATH=/bin ASH_STANDALONE=1 API="$api" \
         MODPATH=/data/adb/modules_update/$ID TMPDIR=/dev/tmp BOOTMODE=true "${ksu[@]}" \
-        /bin/busybox sh -c 'ui_print() { echo "$1"; }; abort() { echo "$1"; rm -rf "$MODPATH" "$TMPDIR"; exit 1; }; . "$MODPATH/customize.sh"' \
+        /bin/busybox sh -c 'ui_print() { echo "$1"; }; abort() { echo "$1"; rm -rf "$MODPATH" "$TMPDIR"; exit 1; }
+            printf %s "$IFS" > /ifs.before; . "$MODPATH/customize.sh"; printf %s "$IFS" > /ifs.after' \
         > "$dir/log" 2>&1 || rc=$?
     echo "$rc" > "$dir/rc"
     (cd "$root/$MODREL/system" 2>/dev/null && find . -type d | LC_ALL=C sort) > "$dir/dirs.after" || : > "$dir/dirs.after"
@@ -164,20 +176,38 @@ check_exists() { [ -e "$MOD/$1" ] || fail "missing $1"; }
 
 has_named() { [ -n "$(find "$MOD" -name "$1" -print -quit)" ]; }
 
-# check_warning CASEDIR present|absent
+# check_warning CASEDIR present|absent [LINE]: LINE defaults to the no-metamodule warning
 check_warning() {
-    local dir=$1 want=$2 w r
-    w=$(grep -nF -- "$WARN_LINE" "$dir/log" | head -n 1 | cut -d: -f1 || true)
+    local dir=$1 want=$2 line=${3:-$WARN_LINE} w r
+    w=$(grep -nF -- "$line" "$dir/log" | head -n 1 | cut -d: -f1 || true)
     if [ "$want" = absent ]; then
-        [ -z "$w" ] || fail "metamodule warning printed but not expected"
+        [ -z "$w" ] || fail "warning '$line' printed but not expected"
         return
     fi
     if [ -z "$w" ]; then
-        fail "metamodule warning missing"
+        fail "warning '$line' missing"
         return
     fi
     r=$(grep -nF -- '*** Please re-boot your device,' "$dir/log" | head -n 1 | cut -d: -f1 || true)
-    [ -n "$r" ] && [ "$w" -lt "$r" ] || fail "metamodule warning is not printed before the re-boot lines"
+    [ -n "$r" ] && [ "$w" -lt "$r" ] || fail "warning '$line' is not printed before the re-boot lines"
+}
+
+# check_ifs CASEDIR: IFS after customize.sh must equal IFS before it
+check_ifs() {
+    local dir=$1
+    if [ ! -f "$dir/root/ifs.after" ]; then
+        fail "IFS not recorded after customize.sh"
+        return
+    fi
+    cmp -s "$dir/root/ifs.before" "$dir/root/ifs.after" \
+        || fail "customize.sh changed IFS from '$(od -An -c "$dir/root/ifs.before")' to '$(od -An -c "$dir/root/ifs.after")'"
+}
+
+# check_no_app_data CASEDIR: nothing may be created inside the app data fixture directories
+check_no_app_data() {
+    local dir=$1 extra
+    extra=$(cd "$dir/root/data/data" && find . -mindepth 2 | LC_ALL=C sort)
+    [ -z "$extra" ] || fail "created under data/data/: $(echo $extra)"
 }
 
 # check_prompts CASEDIR yes|no [EXPECTED_PROMPTS]
@@ -207,7 +237,10 @@ check_working_tree_case() {
     [ "$(cat "$dir/rc")" = 0 ] || fail "installer exited with status $(cat "$dir/rc")"
     grep -q 'Installation of' "$dir/log" || fail "log does not contain 'Installation of'"
     check_warning "$dir" absent
+    check_warning "$dir" absent "$INACTIVE_LINE"
     check_prompts "$dir" "$answer"
+    check_ifs "$dir"
+    check_no_app_data "$dir"
     [ ! -e "$MOD/api36" ] || fail "api36 directory still present after install"
 
     local stubdir=system/product/priv-app/AndroidAutoStubPrebuilt
@@ -237,15 +270,18 @@ check_working_tree_case() {
     finish_case "api=$api answer=$answer [worktree]" "$dir/log"
 }
 
-# check_ksu_case SCENARIO present|absent: API 36 with a non-default metamodule setup
+# check_ksu_case SCENARIO NOMETA INACTIVE: API 36 with a non-default metamodule setup; NOMETA and INACTIVE
+# (present|absent) are the expected no-metamodule and inactive-metamodule warnings
 check_ksu_case() {
-    local scenario=$1 want=$2
+    local scenario=$1 want=$2 want_inactive=$3
     local dir=$W/case/worktree-36-yes-$scenario
     local ddir=$W/case/worktree-36-yes
     [ "$(cat "$dir/rc")" = 0 ] || fail "installer exited with status $(cat "$dir/rc")"
     grep -q 'Installation of' "$dir/log" || fail "log does not contain 'Installation of'"
     check_warning "$dir" "$want"
+    check_warning "$dir" "$want_inactive" "$INACTIVE_LINE"
     check_prompts "$dir" yes
+    check_ifs "$dir"
     # Payload (adb/modules_update/aa4mg and the rest of data/) must equal the default case's, apart from
     # the metamodule fixture paths (adb/metamodule and everything under adb/modules/).
     local f='  adb/(metamodule$|modules/)'
@@ -255,28 +291,40 @@ check_ksu_case() {
     finish_case "api=36 answer=yes [ksu-$scenario]" "$dir/log"
 }
 
-# check_phenotype_case yes|no: API 36 with a pre-existing phenotype.db
+# check_phenotype_case yes|no: API 36 with a pre-existing phenotype.db, which the installer must not touch
 check_phenotype_case() {
     local answer=$1
     local dir=$W/case/worktree-36-$answer-phenotype
     local db=data/data/com.google.android.gms/databases/phenotype.db
-    local pre got want
+    local pre got
     [ "$(cat "$dir/rc")" = 0 ] || fail "installer exited with status $(cat "$dir/rc")"
     grep -q 'Installation of' "$dir/log" || fail "log does not contain 'Installation of'"
     check_warning "$dir" absent
-    check_prompts "$dir" "$answer" 5
-    grep -qF -- '*** Overwrite pre-existing phenotyope.db? ***' "$dir/log" || fail "phenotype.db overwrite prompt missing"
+    check_prompts "$dir" "$answer"
+    ! grep -qi -- 'phenotyp' "$dir/log" || fail "installer still prompts or reports about phenotype.db"
     pre=$(echo 'pre-existing phenotype.db' | sha256sum); pre=${pre%% *}
     got=$(sha256sum < "$dir/root/$db"); got=${got%% *}
-    want=$(sha256sum < "$W/tree/worktree/$db"); want=${want%% *}
-    if [ "$answer" = no ]; then
-        [ "$got" = "$pre" ] || fail "pre-existing phenotype.db changed although answer was no"
-        grep -qF -- 'Keeping pre-existing phenotype.db' "$dir/log" || fail "keep message missing"
-    else
-        [ "$got" = "$want" ] || fail "phenotype.db not replaced by the module copy although answer was yes"
-        grep -qF -- 'Overwriting phenotype.db' "$dir/log" || fail "overwrite message missing"
-    fi
+    [ "$got" = "$pre" ] || fail "pre-existing phenotype.db changed"
+    [ "$(cd "$dir/root/data/data" && find . -mindepth 2 | LC_ALL=C sort | tr '\n' ' ')" = \
+        "./com.google.android.gms/databases ./com.google.android.gms/databases/phenotype.db " ] \
+        || fail "files other than the pre-existing phenotype.db under data/data/"
+    check_ifs "$dir"
     finish_case "api=36 answer=$answer [phenotype-exists]" "$dir/log"
+}
+
+# check_symlink_case: API 36 with phenotype.db and the Android Auto .pb as dangling symlinks to the metamodule's
+# disable and remove markers. Writing through them would stop ksud from mounting with the metamodule.
+check_symlink_case() {
+    local dir=$W/case/worktree-36-yes-symlinks
+    local mm=$dir/root/data/adb/modules/hybrid_mount
+    [ "$(cat "$dir/rc")" = 0 ] || fail "installer exited with status $(cat "$dir/rc")"
+    grep -q 'Installation of' "$dir/log" || fail "log does not contain 'Installation of'"
+    [ ! -e "$mm/disable" ] || fail "hybrid_mount/disable created through the phenotype.db symlink"
+    [ ! -e "$mm/remove" ] || fail "hybrid_mount/remove created through the .pb symlink"
+    check_warning "$dir" absent
+    check_warning "$dir" absent "$INACTIVE_LINE"
+    check_ifs "$dir"
+    finish_case "api=36 answer=yes [symlinks]" "$dir/log"
 }
 
 # check_abort_case API [SCENARIO]: below Android 16 the installer must stop before any prompt, leave no module
@@ -331,13 +379,17 @@ for api in $APIS; do
     done
 done
 
-for scenario in nometa propfallback dangling magisk; do
+for scenario in nometa propfallback dangling magisk metadisabled metaremove propdisabled symlinks; do
     run_case worktree 36 yes "$scenario"
 done
-check_ksu_case nometa present
-check_ksu_case propfallback absent
-check_ksu_case dangling present
-check_ksu_case magisk absent
+check_ksu_case nometa present absent
+check_ksu_case propfallback absent absent
+check_ksu_case dangling present absent
+check_ksu_case magisk absent absent
+check_ksu_case metadisabled absent present
+check_ksu_case metaremove absent present
+check_ksu_case propdisabled absent present
+check_symlink_case
 
 for answer in $ANSWERS; do
     run_case worktree 36 "$answer" phenotype
