@@ -116,7 +116,7 @@ API bound, blocking Magisk / KernelSU / APatch, the "[A15]" README notes.
 
 ## Risk and validation
 
-- Android 16 / 17 installs: the installed module must be byte-identical to `9b464e7` (compare mode).
+- Android 16 / 17 installs: the installed module must be byte-identical to `9b464e7` apart from the root metadata files (compare mode).
 - Android < 16: install refused with a clear message; an installed aa4mg stays in place for boot-mode installs from a manager. A Magisk recovery flash deletes it before customize.sh runs (Magisk v30.7 install_module), which customize.sh cannot prevent.
 - Magisk: installer path unchanged; not tested on a device.
 - Device check for the maintainer: reinstall the built zip on the phone, confirm Android Auto still works

@@ -24,7 +24,7 @@ your device may fail to boot due to permission errors!
 
 1. Install de-googled ROM with microG (for example [LineageOS for MicroG](https://lineage.microg.org/))
 2. Install [KernelSU-Next](https://github.com/KernelSU-Next/KernelSU-Next).
-    *(On KernelSU-Next 3.x, module files are mounted by a metamodule such as Hybrid Mount, Meta Magic Mount or Mountify. Install one first and reboot, then install aa4mg. If you switch metamodule later, install aa4mg again.)*
+    *(On KernelSU-Next 3.x, module files are mounted by a metamodule such as Hybrid Mount, Meta Magic Mount or Mountify. Install one first and reboot, then install aa4mg. To switch metamodule later, first uninstall the Android Auto updates (see [Warning](#warning)): KernelSU-Next needs a reboot without any metamodule, and aa4mg is not mounted during that boot. Then install the new metamodule, install aa4mg again and update Android Auto.)*
 3. Install the [aa4mg](https://github.com/sn-00-x/aa4mg/releases) module through the KernelSU-Next manager => Reboot
     *(Select the desired dependency stubs with the volume keys during the installation process. The installer prompts explain what the stubs are: answer YES only for Google apps you do not have installed, see [Stubs](#stubs))*
 4. Install [Android Auto](https://play.google.com/store/apps/details?id=com.google.android.projection.gearhead) through [Aurora Store](https://gitlab.com/AuroraOSS/AuroraStore),
@@ -149,8 +149,11 @@ If the device does not boot after installing or enabling aa4mg, boot with module
 ## Build
 
 ```bash
+rm -f aa4mg.zip
 zip aa4mg.zip -9r * -x 'tests/*' 'docs/*'
 ```
+
+`zip` adds to an existing archive and never removes entries from it, so delete the old `aa4mg.zip` first.
 
 Run `BUSYBOX=/path/to/static/busybox tests/install-test.sh` to simulate the installation on every supported API level.
 

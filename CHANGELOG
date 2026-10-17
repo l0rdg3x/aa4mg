@@ -3,7 +3,7 @@ Unreleased (A16)
 - README: state that this fork is maintained mainly for personal use
 - Drop Android 11 to 15: the installer stops with an error below Android 16 (API 36), and the Android Auto stub, privapp permissions, overlay and oat files for older releases are removed
 - Drop Magisk from the documentation: KernelSU-Next is the only supported root solution (the installer does not block Magisk, but Magisk is not tested)
-- Add Android 16 support: newer Android Auto stub, privapp permissions and overlay from NikGapps-Addon-16-AndroidAuto-20260222 (via upstream PR #47 by alpianon)
+- Add Android 16 support: newer Android Auto stub, privapp permissions and overlay from NikGapps-Addon-16-AndroidAuto-20260222 (via upstream PR #47 by alpianon); the new privapp permissions also allow Android Auto MANAGE_USERS, MODIFY_PHONE_STATE, POWER_SAVER and TETHER_PRIVILEGED, which the newer stub requests
 - Warn in the installer when KernelSU has no metamodule to mount the module files
 - Explain in the installer what the stubs are, list the skipped stubs in the summary, and show a 30 s timeout on the YES/NO prompts
 - README: document KernelSU-Next (metamodule, Zygisk provider + Vector, "Umount modules"), the Stubs section, Troubleshooting and Recovery, and the Aurora `Root installer` advice
