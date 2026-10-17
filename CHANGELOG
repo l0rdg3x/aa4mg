@@ -1,5 +1,8 @@
 Unreleased (A16)
 
+- Stop copying phenotype.db and the Android Auto phenotype .pb file, and drop the phenotype.db overwrite prompt: microG (tested with 0.3.17) does not read phenotype.db, and Android Auto works without the .pb file on the test phone; the installer no longer writes into app data directories, where a planted symlink could redirect the root copies
+- Restore IFS at the end of the installer: the value it left behind made Hybrid Mount skip its partition links
+- Warn in the installer when the KernelSU metamodule is disabled or marked for removal
 - README: state that this fork is maintained mainly for personal use
 - Drop Android 11 to 15: the installer stops with an error below Android 16 (API 36), and the Android Auto stub, privapp permissions, overlay and oat files for older releases are removed
 - Drop Magisk from the documentation: KernelSU-Next is the only supported root solution (the installer does not block Magisk, but Magisk is not tested)
