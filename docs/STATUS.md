@@ -15,6 +15,7 @@
 - Untested README path: Aurora's microG install method verified with one app only (Car Scanner).
 - README KernelSU-Next advice: the Zygisk provider + Vector steps are device-verified (ReZygisk + Vector); only the "Umount modules" advice for XLauncher Unlocked and Android Auto is not yet device-tested.
 - README Installation steps 6 and 7 still carry "[A15]" notes: confirm the settings paths on Android 16.
+- README "3rd party apps" uses the LSPosed wording ("LSPosed manager", "Enable module"); Vector v2.2 has no "Enable module" string: confirm the wording against the installed Vector version.
 
 ## Next (proposed, not started)
 - uninstall.sh never works: it runs before PackageManager starts (KernelSU-Next).
@@ -23,5 +24,6 @@
 - customize.sh leaves IFS=',' set after it returns (since 2023); Hybrid Mount's metainstall.sh partition loop then never creates the product link (mount still works per Hybrid Mount v6.2.2 source; needs a device test before fixing).
 - AA's files/phenotype/shared/ does not exist on the test phone: the .pb copied by customize.sh is not
   there; find out why before keeping or removing that copy.
-- Security (pre-existing, low risk): customize.sh runs chown -R / chgrp -R as root on "<app>/files/" and "<gms>/databases/". Tested with the KernelSU-Next busybox: symlinks met during recursion are not followed, but the start path has a trailing slash, so if Android Auto replaced files/ (or microG replaced databases/) with a symlink, root would chown the symlink target tree to the app's uid at install time. Fix: skip the copy when that path is a symlink.
+- Security (pre-existing, low risk): customize.sh runs mkdir -p, cp and chown -R / chgrp -R as root inside app-owned paths ("<gms>/databases/", "<AA>/files/phenotype/shared/"). With the KernelSU-Next busybox, cp writes through a symlink at the target file, even a dangling one, and mkdir -p follows symlinked components; so a symlinked .pb or phenotype.db can make the install create a file such as /data/adb/modules/hybrid_mount/disable, and ksud does not mount with a disabled metamodule (KernelSU-Next metamodule.rs), so aa4mg would not be mounted at the next boot. chown -R also follows a symlinked start path because of the trailing slash. Skipping only a symlinked start path is not enough: remove the copies or write without following any symlink.
+- The installer's metamodule warning stays silent when the metamodule is disabled or marked for removal, although ksud then does not mount with it.
 - Magisk (unsupported) recovery flash on Android < 16: Magisk deletes /data/adb/modules/aa4mg before customize.sh runs, then the gate refuses, so an installed aa4mg is lost (bootloop risk if Android Auto updates are installed). customize.sh cannot prevent it; boot-mode installs from a manager are not affected.
