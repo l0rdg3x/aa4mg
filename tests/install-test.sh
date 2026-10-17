@@ -67,7 +67,8 @@ ABORT_LINE='! aa4mg requires Android 16 or later (API 36+)'
 # module.prop carries metamodule=1. Other scenarios: nometa, propfallback, dangling, magisk, phenotype (default plus a
 # pre-existing phenotype.db), installed (default plus an aa4mg already installed under modules/), metadisabled and
 # metaremove (default with the metamodule disabled or marked for removal), propdisabled (propfallback with the
-# metamodule disabled), symlinks (default plus app data paths that are dangling symlinks into the metamodule).
+# metamodule disabled), magiskdisabled (metadisabled without KSU), symlinks (default plus app data paths that are
+# dangling symlinks into the metamodule).
 # The metamodule fixtures have no metainstall.sh: ksud refuses to install while a metamodule with one is disabled.
 setup_metamodule() {
     local root=$1 scenario=$2 mods=$1/data/adb/modules
@@ -92,7 +93,7 @@ setup_metamodule() {
         installed)
             mkdir -p "$mods/aa4mg"
             printf 'id=aa4mg\nversion=installed\n' > "$mods/aa4mg/module.prop" ;;
-        metadisabled) touch "$mods/hybrid_mount/disable" ;;
+        metadisabled|magiskdisabled) touch "$mods/hybrid_mount/disable" ;;
         metaremove) touch "$mods/hybrid_mount/remove" ;;
         propdisabled) touch "$mods/pf/disable" ;;
         symlinks)
@@ -122,7 +123,7 @@ run_case() {
     chmod 755 "$root/system/bin/getevent"
     setup_metamodule "$root" "$scenario"
     local ksu=(KSU=true)
-    [ "$scenario" != magisk ] || ksu=()
+    case "$scenario" in magisk|magiskdisabled) ksu=() ;; esac
     mkdir -p "$root/$MODREL"
     cp -a "$W/tree/$tree/." "$root/$MODREL/"
     (cd "$root/$MODREL/system" && find . -type d | LC_ALL=C sort) > "$dir/dirs.before"
@@ -226,6 +227,9 @@ check_prompts() {
         done
     else
         ! grep -qF -- 'Skipped:' "$dir/log" || fail "Skipped list printed although answer was yes"
+        for n in "Google Maps stub" "Google Speech Services stub" "Google Search stub" "Android Auto - XLauncher Unlocked"; do
+            grep -qxF -- "    $n" "$dir/log" || fail "installed item '$n' not listed"
+        done
     fi
 }
 
@@ -379,13 +383,14 @@ for api in $APIS; do
     done
 done
 
-for scenario in nometa propfallback dangling magisk metadisabled metaremove propdisabled symlinks; do
+for scenario in nometa propfallback dangling magisk magiskdisabled metadisabled metaremove propdisabled symlinks; do
     run_case worktree 36 yes "$scenario"
 done
 check_ksu_case nometa present absent
 check_ksu_case propfallback absent absent
 check_ksu_case dangling present absent
 check_ksu_case magisk absent absent
+check_ksu_case magiskdisabled absent absent
 check_ksu_case metadisabled absent present
 check_ksu_case metaremove absent present
 check_ksu_case propdisabled absent present

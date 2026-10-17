@@ -131,7 +131,8 @@ if [ "$KSU" = "true" ] && ! { [ -L /data/adb/metamodule ] && [ -d /data/adb/meta
         esac
     done
 fi
-# ksud skips the mount script of a disabled metamodule, and deletes one marked for removal at the next boot
+# ksud skips the mount script of a disabled metamodule, and deletes one marked for removal at the next boot. Only
+# metamodules without metainstall.sh get here: for the others ksud refuses the install (check_install_safety).
 MM_INACTIVE="false"
 if [ "$KSU" = "true" ] && [ "$NO_METAMODULE" = "false" ] && { [ -e "$MM_DIR/disable" ] || [ -e "$MM_DIR/remove" ]; } ; then
     MM_INACTIVE="true"
@@ -172,8 +173,9 @@ if [ "$MM_INACTIVE" = "true" ] ; then
     ui_print "*** marked for removal. KernelSU-Next does not mount ***"
     ui_print "*** module files without an active metamodule, so    ***"
     ui_print "*** Android Auto will not work. Enable or restore    ***"
-    ui_print "*** the metamodule and reboot, or install another    ***"
-    ui_print "*** one, reboot, then install aa4mg again.           ***"
+    ui_print "*** the metamodule and reboot. To switch metamodule, ***"
+    ui_print "*** remove it, reboot, install the new one, reboot,  ***"
+    ui_print "*** then install aa4mg again.                        ***"
 fi
 ui_print ""
 ui_print "*** Please re-boot your device,                      ***"
