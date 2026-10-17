@@ -1,5 +1,7 @@
-Unreleased (A16)
+v0.7.0 (A16)
 
+- Point the update check and the README install and update links to this fork's releases
+- README: name microG 0.3.16 as the first release with the Android Auto flag that Car App Library apps need
 - Add an Action button that uninstalls the Android Auto updates after a Volume UP confirmation: on KernelSU-Next, uninstall.sh runs at the next boot before the package manager starts and cannot do it; README Warning and Uninstall point to it
 - Stop copying phenotype.db and the Android Auto phenotype .pb file, and drop the phenotype.db overwrite prompt: microG (tested with 0.3.17) does not read phenotype.db, and Android Auto works without the .pb file on the test phone; the installer no longer writes into app data directories, where a planted symlink could redirect the root copies
 - Restore IFS at the end of the installer: the value it left behind made Hybrid Mount skip its partition links

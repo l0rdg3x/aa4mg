@@ -27,7 +27,7 @@ your device may fail to boot due to permission errors!
 1. Install de-googled ROM with microG (for example [LineageOS for MicroG](https://lineage.microg.org/))
 2. Install [KernelSU-Next](https://github.com/KernelSU-Next/KernelSU-Next).
     *(On KernelSU-Next 3.x, module files are mounted by a metamodule such as Hybrid Mount, Meta Magic Mount or Mountify. Install one first and reboot, then install aa4mg. To switch metamodule later, first uninstall the Android Auto updates (see [Warning](#warning)): KernelSU-Next needs a reboot without any metamodule, and aa4mg is not mounted during that boot. Then install the new metamodule, install aa4mg again and update Android Auto.)*
-3. Install the [aa4mg](https://github.com/sn-00-x/aa4mg/releases) module through the KernelSU-Next manager => Reboot
+3. Install the [aa4mg](https://github.com/l0rdg3x/aa4mg/releases) module through the KernelSU-Next manager => Reboot
     *(Select the desired dependency stubs with the volume keys during the installation process. The installer prompts explain what the stubs are: answer YES only for Google apps you do not have installed, see [Stubs](#stubs))*
 4. Install [Android Auto](https://play.google.com/store/apps/details?id=com.google.android.projection.gearhead) through [Aurora Store](https://gitlab.com/AuroraOSS/AuroraStore),
     use `Root installer` (preferred) or `Aurora Services` as installation method to "install as Google Play Store".
@@ -64,7 +64,7 @@ On ROMs de-bloated by hiding system apps (for example with a de-bloater module),
 
 Once the installation is complete:
 - [Android Auto](https://play.google.com/store/apps/details?id=com.google.android.projection.gearhead) can be updated through [Aurora Store](https://gitlab.com/AuroraOSS/AuroraStore).
-- [aa4mg](https://github.com/sn-00-x/aa4mg) can be updated through the KernelSU-Next manager
+- [aa4mg](https://github.com/l0rdg3x/aa4mg) can be updated through the KernelSU-Next manager
 
 ## Uninstall
 
@@ -139,7 +139,7 @@ then you can still access the AA settings through either of below ways:
 
 ## Troubleshooting
 
-- **A third-party Car App Library app such as Spotify reports "requires a newer version of Android Auto":** updating microG may help. The Android Auto flag that was missing was added to microG in mid-2026 (microG PR #3491). Users also reported that Android Auto and Spotify updates changed this behaviour (upstream issue #49).
+- **A third-party Car App Library app such as Spotify reports "requires a newer version of Android Auto":** updating microG may help. The Android Auto flag that was missing was added in microG 0.3.16 (microG PR #3491); this fork is tested with 0.3.17. Users also reported that Android Auto and Spotify updates changed this behaviour (upstream issue #49).
 - **Wireless Android Auto does not connect:** users reported that VPN apps, including DNS-blocking VPNs, can break the wireless connection (upstream issue #13). Some head units needed a restart after a failed connection (upstream issue #12).
 
 ## Recovery
