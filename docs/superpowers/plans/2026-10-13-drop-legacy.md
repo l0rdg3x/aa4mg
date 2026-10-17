@@ -4,7 +4,7 @@
 
 **Goal:** aa4mg installs on Android 16 and later only, documents KernelSU-Next as the only supported root solution, and produces on Android 16 exactly the same installed module as today.
 
-**Architecture:** one fail-closed API gate at the top of `customize.sh`; the Android 16 files move from `api36/` to their final place in the zip, so the installer branches that moved files per API level disappear. The install simulation test gains refusal cases and a strict comparison with the current master (`9b464e7`).
+**Architecture:** one fail-closed API gate at the top of `customize.sh`; the Android 16 files move from `api36/` to their final place in the zip, so the installer branches that moved files per API level disappear. The install simulation test gains refusal cases and a strict comparison with the current master (`8140f66`).
 
 **Tech Stack:** POSIX shell sourced by the KernelSU-Next (or Magisk) busybox `ash`; bash test harness run in an unprivileged chroot.
 
@@ -19,7 +19,7 @@
 - Do not modify `module.prop`, `update.json`, `uninstall.sh`, `META-INF/` or `data/`.
 - Product text (code, comments, commits, docs) is English.
 - Test command (busybox sha256 `060844b0…`, from KernelSU-Next v3.4.0):
-  `bash -c 'cd /home/l0rdg3x/coding/aa4mg/.worktrees/drop-legacy && BUSYBOX=/tmp/claude-1000/-home-l0rdg3x-coding-aa4mg/925a891b-dd6b-4873-8503-dda601127a3f/scratchpad/tools/busybox bash tests/install-test.sh --compare-ref 9b464e7'`
+  `bash -c 'cd /home/l0rdg3x/coding/aa4mg/.worktrees/drop-legacy && BUSYBOX=/tmp/claude-1000/-home-l0rdg3x-coding-aa4mg/925a891b-dd6b-4873-8503-dda601127a3f/scratchpad/tools/busybox bash tests/install-test.sh --compare-ref 8140f66'`
 - Commit trailers (personal project), with the name of the model you are running on:
   ```
   Co-Authored-By: Claude <Model Name> <noreply@anthropic.com>
@@ -181,7 +181,7 @@ done
 - [ ] **Step 2: Run the tests and verify they fail for the right reason**
 
 Run the test command from Global Constraints.
-Expected: `Summary: 16/21 passed, 5 failed`. The five failures are the abort cases (`api=30`, `api=35`, `api=empty`, `api=35 ... [abort magisk]`, `api=35 ... [abort installed]`), each failing at least on `installer exited with status 0, expected 1`, `abort message missing` and `a prompt was shown before the abort`. All `[worktree]`, `[ksu-…]`, `[phenotype-exists]`, `[broken-…]` and `[compare 9b464e7]` cases PASS.
+Expected: `Summary: 16/21 passed, 5 failed`. The five failures are the abort cases (`api=30`, `api=35`, `api=empty`, `api=35 ... [abort magisk]`, `api=35 ... [abort installed]`), each failing at least on `installer exited with status 0, expected 1`, `abort message missing` and `a prompt was shown before the abort`. All `[worktree]`, `[ksu-…]`, `[phenotype-exists]`, `[broken-…]` and `[compare 8140f66]` cases PASS.
 
 - [ ] **Step 3: Add the gate**
 
@@ -231,7 +231,7 @@ Message subject: `Refuse to install below Android 16`. Body: the installer now s
 - Consumes: Task 1's gate, `check_abort_case`, `ABORT_LINE`, `installed` scenario (unchanged).
 - Produces: the final file layout; strict `check_compare_case`.
 
-This task is a layout refactor: the tests must pass before and after it, and the strict comparison with `9b464e7` proves the installed result did not change.
+This task is a layout refactor: the tests must pass before and after it, and the strict comparison with `8140f66` proves the installed result did not change.
 
 - [ ] **Step 1: Tighten the tests**
 
@@ -279,7 +279,7 @@ check_compare_case() {
 
 - [ ] **Step 2: Run the tests on the current layout**
 
-Run the test command. Expected: `Summary: 19/19 passed, 0 failed` (the installer still moves the `api36/` files, so the result already equals `9b464e7`).
+Run the test command. Expected: `Summary: 19/19 passed, 0 failed` (the installer still moves the `api36/` files, so the result already equals `8140f66`).
 
 - [ ] **Step 3: Move the files**
 
@@ -342,10 +342,10 @@ Run the test command. Expected: `Summary: 19/19 passed, 0 failed`.
 - [ ] **Step 6: Verify the comparison is not vacuous**
 
 ```bash
-bash -c 'cd /home/l0rdg3x/coding/aa4mg/.worktrees/drop-legacy && git show 9b464e7:system/product/priv-app/AndroidAutoStubPrebuilt/AndroidAutoStubPrebuilt.apk > system/product/priv-app/AndroidAutoStubPrebuilt/AndroidAutoStubPrebuilt.apk'
+bash -c 'cd /home/l0rdg3x/coding/aa4mg/.worktrees/drop-legacy && git show 8140f66:system/product/priv-app/AndroidAutoStubPrebuilt/AndroidAutoStubPrebuilt.apk > system/product/priv-app/AndroidAutoStubPrebuilt/AndroidAutoStubPrebuilt.apk'
 ```
 
-Run the test command. Expected: the four `[worktree]` cases FAIL on `hash mismatch for system/product/priv-app/AndroidAutoStubPrebuilt/AndroidAutoStubPrebuilt.apk` and the four `[compare 9b464e7]` cases FAIL with a manifest difference on that file. Restore:
+Run the test command. Expected: the four `[worktree]` cases FAIL on `hash mismatch for system/product/priv-app/AndroidAutoStubPrebuilt/AndroidAutoStubPrebuilt.apk` and the four `[compare 8140f66]` cases FAIL with a manifest difference on that file. Restore:
 
 ```bash
 bash -c 'cd /home/l0rdg3x/coding/aa4mg/.worktrees/drop-legacy && git checkout -- system/product/priv-app/AndroidAutoStubPrebuilt/AndroidAutoStubPrebuilt.apk && sha256sum system/product/priv-app/AndroidAutoStubPrebuilt/AndroidAutoStubPrebuilt.apk'
@@ -355,7 +355,7 @@ The new stub is staged by `git mv`, so restore it from the index with `git check
 
 - [ ] **Step 7: Commit**
 
-Stage `customize.sh`, `tests/install-test.sh` and the moves/deletions (`git status` must show no unstaged change and no file outside this task). Message subject: `Ship the Android 16 files in place`. Body: the Android 16 stub, privapp permissions and overlay now sit at their final paths, so the installer no longer moves them; the pre-Android 16 stub, its oat files, XML and overlay and the Android 11/12 relocations are gone; on API 36 and 37 the installed module is identical to 9b464e7 (strict compare). Add the trailers.
+Stage `customize.sh`, `tests/install-test.sh` and the moves/deletions (`git status` must show no unstaged change and no file outside this task). Message subject: `Ship the Android 16 files in place`. Body: the Android 16 stub, privapp permissions and overlay now sit at their final paths, so the installer no longer moves them; the pre-Android 16 stub, its oat files, XML and overlay and the Android 11/12 relocations are gone; on API 36 and 37 the installed module is identical to 8140f66 (strict compare). Add the trailers.
 
 ---
 
@@ -476,7 +476,7 @@ Leave everything else unchanged, including the "[A15]" notes in Installation ste
 
 ## Done
 - Android 16 support (stub, privapp permissions, overlay from NikGapps 20260222) (d67a694): implemented and simulation-tested; the maintainer reported on 2026-10-12 that Android Auto works with this build on the Nothing Phone 2 (detailed read-only checks not reported).
-- Android 11-15 dropped, KernelSU-Next the only supported root solution (branch drop-legacy): the installer stops below API 36; Magisk is no longer documented but not blocked. Simulation-tested: on API 36 and 37 the installed module is identical to 9b464e7; device check pending.
+- Android 11-15 dropped, KernelSU-Next the only supported root solution (branch drop-legacy): the installer stops below API 36; Magisk is no longer documented but not blocked. Simulation-tested: on API 36 and 37 the installed module is identical to 8140f66; device check pending.
 - Install simulation test: `tests/install-test.sh`.
 - Installer warns when KernelSU has no metamodule: implemented, simulation-tested; device validation pending.
 - Installer explains the stubs, lists skipped items and uses 30 s prompts: implemented, simulation-tested; device validation pending.
