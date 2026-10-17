@@ -16,7 +16,7 @@ while [ $# -gt 0 ]; do
 done
 
 [ -n "${BUSYBOX:-}" ] && [ -x "$BUSYBOX" ] || die "BUSYBOX must point to an executable static busybox"
-for tool in git unshare chroot sha256sum tar find; do
+for tool in git unshare chroot sha256sum tar find timeout; do
     command -v "$tool" >/dev/null || die "missing required tool: $tool"
 done
 
@@ -409,6 +409,81 @@ for scenario in magisk installed; do
     run_case worktree 35 yes "$scenario"
     check_abort_case 35 "$scenario"
 done
+
+# run_action_case NAME KEY PM: runs action.sh in a chroot as ksud does (busybox sh from the module directory,
+# ASH_STANDALONE=1, KSU=true). KEY: up (a SYN event, then Volume UP pressed), down (Volume DOWN pressed), release
+# (Volume UP released, then Volume DOWN pressed), none (getevent waits forever) or broken (getevent fails at once).
+# PM: updated (pm removes the updates), clean (no updates installed), fail, or npe (Android Auto is not a system app).
+# Like the real command, the fake pm exits with 1 on success and 0 on failure (AOSP PackageManagerShellCommand).
+run_action_case() {
+    local name=$1 key=$2 pm=$3
+    local dir=$W/case/action-$name
+    local root=$dir/root aa='com.google.android.projection.gearhead' first rest
+    mkdir -p "$root"/{bin,etc,dev,system/bin,data/adb/modules/$ID}
+    cp "$BUSYBOX" "$root/bin/busybox"
+    local applet
+    for applet in $("$BUSYBOX" --list); do ln -s busybox "$root/bin/$applet"; done
+    case "$key" in
+        up) first='EV_SYN       SYN_REPORT           00000000'; rest='EV_KEY       KEY_VOLUMEUP         DOWN' ;;
+        down) first='EV_KEY       KEY_VOLUMEDOWN       DOWN'; rest=$first ;;
+        release) first='EV_KEY       KEY_VOLUMEUP         UP'; rest='EV_KEY       KEY_VOLUMEDOWN       DOWN' ;;
+    esac
+    case "$key" in
+        none) printf '#!/bin/sh\nexec sleep 1000\n' ;;
+        broken) printf '#!/bin/sh\necho "could not open /dev/input" >&2\nexit 1\n' ;;
+        *) printf '#!/bin/sh\nn=$(cat /getevent.count 2>/dev/null || echo 0)\necho $((n + 1)) > /getevent.count\n[ "$n" = 0 ] && echo "/dev/input/event0: %s" || echo "/dev/input/event0: %s"\n' "$first" "$rest" ;;
+    esac > "$root/system/bin/getevent"
+    {
+        printf '#!/bin/sh\necho "$*" >> /pm.calls\n'
+        case "$pm" in
+            updated) printf 'echo "Uninstalling updates to %s..."\necho Success\nexit 1\n' "$aa" ;;
+            clean) printf 'echo Success\nexit 1\n' ;;
+            fail) printf 'echo "Uninstalling updates to %s..."\necho "Couldn'\''t uninstall package: %s"\nexit 0\n' "$aa" "$aa" ;;
+            npe) printf 'echo "Exception occurred while executing '\''uninstall-system-updates'\'':" >&2\necho java.lang.NullPointerException >&2\nexit 255\n' ;;
+        esac
+    } > "$root/system/bin/pm"
+    chmod 755 "$root/system/bin/getevent" "$root/system/bin/pm"
+    cp "$W/tree/worktree/action.sh" "$root/data/adb/modules/$ID/" 2>/dev/null || true
+    local start=$SECONDS
+    timeout 60 unshare -r --fork chroot "$root" /bin/busybox env -i PATH=/bin ASH_STANDALONE=1 KSU=true \
+        /bin/busybox sh -c "cd /data/adb/modules/$ID && /bin/busybox sh action.sh" > "$dir/log" 2>&1 || true
+    echo $((SECONDS - start)) > "$dir/elapsed"
+}
+
+# check_action_case NAME CALLED MESSAGE [MIN MAX]: CALLED (yes|no) is whether pm must be called; MESSAGE must be in
+# the output; the run must take MIN to MAX seconds (default 0 to 3)
+check_action_case() {
+    local name=$1 called=$2 msg=$3 min=${4:-0} max=${5:-3}
+    local dir=$W/case/action-$name elapsed
+    grep -qF -- 'Volume UP (+) = YES' "$dir/log" || fail "confirmation prompt missing"
+    if [ "$called" = yes ]; then
+        [ "$(cat "$dir/root/pm.calls" 2>/dev/null)" = 'uninstall-system-updates com.google.android.projection.gearhead' ] \
+            || fail "pm not called exactly once with uninstall-system-updates com.google.android.projection.gearhead"
+    else
+        [ ! -e "$dir/root/pm.calls" ] || fail "pm called although the answer was not YES"
+    fi
+    grep -qF -- "$msg" "$dir/log" || fail "message '$msg' missing"
+    elapsed=$(cat "$dir/elapsed")
+    [ "$elapsed" -ge "$min" ] && [ "$elapsed" -le "$max" ] || fail "took $elapsed s, expected $min to $max s"
+    finish_case "action [$name]" "$dir/log"
+}
+
+run_action_case yes up updated
+check_action_case yes yes 'Android Auto updates removed.'
+run_action_case clean up clean
+check_action_case clean yes 'No Android Auto updates were installed.'
+run_action_case fail up fail
+check_action_case fail yes 'Failed: uninstall the updates in Settings'
+run_action_case npe up npe
+check_action_case npe yes 'If aa4mg is not active, Android Auto is not a system app'
+run_action_case no down updated
+check_action_case no no 'Cancelled: nothing was changed.'
+run_action_case release release updated
+check_action_case release no 'Cancelled: nothing was changed.'
+run_action_case broken broken updated
+check_action_case broken no 'Cannot read the volume keys (getevent exit status 1): nothing was changed.'
+run_action_case timeout none updated
+check_action_case timeout no 'Cancelled: nothing was changed.' 9 12
 
 if [ -n "$COMPARE_REF" ]; then
     for api in $APIS; do
