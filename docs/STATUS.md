@@ -22,7 +22,7 @@
 - Nothing.
 
 ## Next (proposed, not started)
-- CHANGELOG: the README changes made after v0.7.0 (branch readme-a16-paths) go into the next release's entry.
+- CHANGELOG: the README changes made after v0.7.0 (branch readme-a16-paths) and l0rdg3x added to the module.prop authors (branch author-l0rdg3x) go into the next release's entry.
 
 ## Not planned
 - Magisk (unsupported) recovery flash on Android < 16: Magisk deletes /data/adb/modules/aa4mg before customize.sh runs, then the gate refuses, so an installed aa4mg is lost (bootloop risk if Android Auto updates are installed). customize.sh cannot prevent it; boot-mode installs from a manager are not affected. The maintainer decided on 2026-10-18 that Magisk is out of scope.
