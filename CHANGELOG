@@ -11,7 +11,7 @@ v0.7.0 (A16)
 - Drop Magisk from the documentation: KernelSU-Next is the only supported root solution (the installer does not block Magisk, but Magisk is not tested)
 - Add Android 16 support: newer Android Auto stub, privapp permissions and overlay from NikGapps-Addon-16-AndroidAuto-20260222 (via upstream PR #47 by alpianon); the new privapp permissions also allow Android Auto MANAGE_USERS, MODIFY_PHONE_STATE, POWER_SAVER and TETHER_PRIVILEGED, which the newer stub requests
 - Warn in the installer when KernelSU has no metamodule to mount the module files
-- Explain in the installer what the stubs are, list the skipped stubs in the summary, and show a 30 s timeout on the YES/NO prompts
+- Explain in the installer what the stubs are, list the skipped stubs in the summary, and raise the YES/NO prompt timeout from 10-20 s to 30 s
 - README: document KernelSU-Next (metamodule, Zygisk provider + Vector, "Umount modules"), the Stubs section, Troubleshooting and Recovery, and the Aurora `Root installer` advice
 - README: fix the step 8 list formatting (upstream PR #40 by cnjhb)
 - README: rewrite "3rd party apps" from a device test: media apps need only Unknown Sources; navigation and IoT apps need the XLauncher module (Android Auto as only scope) or Aurora's microG install method; root/shell "install as Play Store" methods are no longer recommended for them
