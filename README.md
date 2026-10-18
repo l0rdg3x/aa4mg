@@ -35,10 +35,9 @@ your device may fail to boot due to permission errors!
     *(If the car shows communication error 14, a user reported success after spoofing a Pixel device in Aurora Store (upstream issue #30). For `signatures do not match`, another user in the same issue also restored the app from a saved bundle.)*
     *(You can also install through your Package Manager if Aurora doesn't work, not preferred as it does not "install as Google Play Store")*
 5. **(Optional)** Settings => Apps => See all apps => Android Auto => Mobile data & Wi-Fi => UnCheck all - ***WARNING:*** **THIS WILL MAKE IT IMPOSSIBLE TO CONNECT WIRELESSLY**. If you want to use Android Auto wirelessly you should keep these options enabled (already enabled by default) and skip this step. This step only provides further privacy.
-6. Settings => Notifications => Device & app notifications => Android Auto => Check `Allow Notification Access` => Allow
-   ([A15] Settings => Notifications => Notification read, reply & control)
-7. [A15 and LineageOS based]  Settings => Security & privacy => Privacy controls => Permissions manager => Check Android Auto is allowed in every permisssion, especcialy Call logs and Phone.
-   (sometimes you can refuse permission by mistake when popup came prompt, here you cane change that)
+6. Settings => Notifications => Notification read, reply & control => Android Auto => Check `Allow notification access` => Allow
+7. Settings => Security & privacy => Privacy controls => Permission manager => Check that Android Auto is allowed in every permission, especially Call logs and Phone.
+   (If you refused a permission by mistake when its prompt came up, you can change it here.)
 8. Settings => Connected Devices => Connection Preferences => Android Auto
     - About => Tap `Version` a lot => Accept PopUp to become a developer
     - Triple dot icon *(top right corner)* => Developer Settings
@@ -87,7 +86,6 @@ Then unplug and re-plug your device.
 
 ## 3rd party apps
 The steps below were tested on Android 16 (LineageOS 23.2) with microG 0.3.17, KernelSU-Next, ReZygisk and Vector.
-The "Umount modules" advice is untested.
 
 #### Media and messaging apps
 Music, podcast and messaging apps only need `Unknown Sources` enabled in the Android Auto developer settings
@@ -121,12 +119,16 @@ Android Auto itself follow Installation, step 4):
 KernelSU-Next has no built-in Zygisk, so you need a Zygisk provider ([NeoZygisk](https://github.com/JingMatrix/NeoZygisk), [ReZygisk](https://github.com/PerformanC/ReZygisk) or [ZygiskNext](https://github.com/LSPosed/ZygiskNext)) plus a maintained LSPosed fork: [JingMatrix's](https://github.com/JingMatrix/Vector), now named Vector.
 
 1. Install a Zygisk provider and Vector, then reboot
-2. In the LSPosed manager => Modules => Android Auto - XLauncher Unlocked
-    - Check `Enable module`
-    - Check `Android Auto` (only)
+2. In the Vector app => Modules => `com.google.android.projection.gearhead.xunlocked` (XLauncher Unlocked)
+    - Turn on the switch at the top right
+    - Check `Android Auto` only (`Clear everything shown` in the Selection menu unchecks the others), and keep
+      `Add new apps automatically` off in the same menu
 3. Reboot
 
-If XLauncher Unlocked does not open, turn off 'Umount modules' for XLauncher Unlocked and Android Auto in the KernelSU-Next App Profile.
+"Umount modules" in the KernelSU-Next App Profile hides the module files from an app. On the test phone it is on for
+Android Auto, and Android Auto works. XLauncher Unlocked is itself one of the module files: if it does not open, turn
+off "Umount modules" for XLauncher Unlocked. (On the test phone XLauncher Unlocked has root access and sees the module
+files, so this case is untested.)
 
 ## Can not open Android Auto
 If you can not directly open the AA app after installation,
