@@ -10,6 +10,7 @@
 - README Installation steps 6 and 7 for Android 16 (branch readme-a16-paths): English labels taken from the LineageOS 23.2 Settings strings (manage_notification_access_title, notification_access_detail_switch) and from the AOSP android16-release PermissionController strings (privacy_controls_title, app_permission_manager); the "[A15]" notes are gone. On the phone (2026-10-18) the step 7 path exists and Android Auto's notification listener is enabled; the step 6 path comes from the Settings source and has not been opened on the phone.
 - README Vector steps (branch readme-a16-paths): Vector v2.2 manager wording (app name Vector, Modules tab, switch at the top right of the module page, "Add new apps automatically"), checked against the maintainer's screenshots, where the module is listed by its package name.
 - README "Umount modules" advice (branch readme-a16-paths): device check 2026-10-18 with "Umount modules" on as the global default and Android Auto on the Default profile ("Kernel umount" off): no Android Auto process (:shared, :car, :provider, :projection, :watchdog) sees /product/overlay/AndroidAutoOverlay.apk or /product/app/XLauncherUnlocked, and Android Auto works in the car; XLauncher Unlocked has root access and sees them. The advice now covers XLauncher Unlocked only; XLauncher Unlocked without root access and with "Umount modules" on is untested.
+- README "3rd party apps", Aurora's microG install method: first verified with Car Scanner; the maintainer reported on 2026-10-18 that the method works.
 - Install simulation test: `tests/install-test.sh`.
 - Installer warns when KernelSU has no metamodule: implemented, simulation-tested; device validation pending.
 - Installer explains the stubs, lists skipped items and uses 30 s prompts: implemented, simulation-tested; device-checked on 2026-10-18 (install log of the 0.7.0 build).
@@ -18,8 +19,10 @@
   appear; verified on Nothing Phone 2, LineageOS 23.2, microG 0.3.17, KernelSU-Next + Hybrid Mount, ReZygisk + Vector.
 
 ## In progress
-- Untested README path: Aurora's microG install method verified with one app only (Car Scanner).
+- Nothing.
 
 ## Next (proposed, not started)
 - CHANGELOG: the README changes made after v0.7.0 (branch readme-a16-paths) go into the next release's entry.
-- Magisk (unsupported) recovery flash on Android < 16: Magisk deletes /data/adb/modules/aa4mg before customize.sh runs, then the gate refuses, so an installed aa4mg is lost (bootloop risk if Android Auto updates are installed). customize.sh cannot prevent it; boot-mode installs from a manager are not affected.
+
+## Not planned
+- Magisk (unsupported) recovery flash on Android < 16: Magisk deletes /data/adb/modules/aa4mg before customize.sh runs, then the gate refuses, so an installed aa4mg is lost (bootloop risk if Android Auto updates are installed). customize.sh cannot prevent it; boot-mode installs from a manager are not affected. The maintainer decided on 2026-10-18 that Magisk is out of scope.
