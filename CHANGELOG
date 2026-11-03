@@ -1,3 +1,10 @@
+Unreleased
+
+- Drop the package manager's cached parses of the module APKs on install: Hybrid Mount shows module files with a 1970
+  timestamp, so a swapped APK (a newer Android Auto stub, a stub instead of the real app or back) kept its stale parse,
+  with the old version and permissions; for a privileged app this can end in a boot loop on the privapp allowlist check
+- tests: skip the busybox applet that some busybox builds (Debian busybox-static) list
+
 v0.7.0 (A16)
 
 - Point the update check and the README install and update links to this fork's releases

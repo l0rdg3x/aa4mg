@@ -32,6 +32,8 @@ MODREL=data/adb/modules_update/$ID
 A_STUB=37f588bf651527a249e8b38ab01f8d28b9143b2050bd9820d2caa21f255c4903
 A_XML=edfc75e888e8f3c7b97359e059f08640bc06599b9daa11497e1033f3c2a401f8
 A_OVL=85ad586ad6dc57cb19720324299f7763121b0ee6b735f831e4ea5874c6b120c7
+CACHE_MODULE="Velvet-16-750941797 AndroidAutoStubPrebuilt-16-1691210378 GoogleTTS-16-601047165 Maps-16-1 XLauncherUnlocked-16-2 AndroidAutoOverlay.apk-16-1057282734"
+CACHE_FOREIGN="com.google.android.apps.maps-eG-xpFhQwAemPuUtCdQi4Q==-0-2073578699 VelvetExtra-16-3"
 
 prune_tree() { rm -rf "$1/META-INF" "$1/tests" "$1/docs"; }
 
@@ -116,11 +118,14 @@ run_case() {
     cp "$BUSYBOX" "$root/bin/busybox"
     # No /proc in the chroot, so ASH_STANDALONE cannot find the applets by itself
     local applet
-    for applet in $("$BUSYBOX" --list); do ln -s busybox "$root/bin/$applet"; done
+    for applet in $("$BUSYBOX" --list); do [ "$applet" = busybox ] || ln -s busybox "$root/bin/$applet"; done
     echo 'root:x:0:0::/:/bin/sh' > "$root/etc/passwd"
     echo 'root:x:0:' > "$root/etc/group"
     printf '#!/bin/sh\necho "/dev/input/event0: EV_KEY       %s         DOWN"\n' "$key" > "$root/system/bin/getevent"
     chmod 755 "$root/system/bin/getevent"
+    # Package manager cache: entries of the APKs aa4mg provides must be dropped, other entries kept
+    mkdir -p "$root/data/system/package_cache/c0ffee"
+    for n in $CACHE_MODULE $CACHE_FOREIGN; do echo cached > "$root/data/system/package_cache/c0ffee/$n"; done
     setup_metamodule "$root" "$scenario"
     local ksu=(KSU=true)
     case "$scenario" in magisk|magiskdisabled) ksu=() ;; esac
@@ -267,6 +272,8 @@ check_working_tree_case() {
         done
     fi
 
+    check_package_cache "$dir"
+
     local extra
     extra=$(LC_ALL=C comm -13 "$dir/dirs.before" "$dir/dirs.after")
     [ -z "$extra" ] || fail "directories created by customize.sh under system/: $(echo $extra)"
@@ -331,6 +338,13 @@ check_symlink_case() {
     finish_case "api=36 answer=yes [symlinks]" "$dir/log"
 }
 
+# check_package_cache CASEDIR: cached parses of the module APKs removed, all other cache entries kept
+check_package_cache() {
+    local c=$1/root/data/system/package_cache/c0ffee n
+    for n in $CACHE_MODULE; do [ ! -e "$c/$n" ] || fail "package cache entry $n not removed"; done
+    for n in $CACHE_FOREIGN; do [ -e "$c/$n" ] || fail "foreign package cache entry $n removed"; done
+}
+
 # check_abort_case API [SCENARIO]: below Android 16 the installer must stop before any prompt, leave no module
 # directory behind and write nothing under data/ apart from the fixtures.
 check_abort_case() {
@@ -345,7 +359,8 @@ check_abort_case() {
     ! grep -qF -- 'Please answer within' "$dir/log" || fail "a prompt was shown before the abort"
     [ ! -e "$dir/root/$MODREL" ] || fail "$MODREL still present"
     local extra
-    extra=$(cd "$dir/root/data" && find . -type f | grep -vE '^\./adb/modules/[^/]+/module\.prop$' || true)
+    extra=$(cd "$dir/root/data" && find . -type f | grep -vE '^\./adb/modules/[^/]+/module\.prop$|^\./system/package_cache/c0ffee/' || true)
+    [ "$(find "$dir/root/data/system/package_cache/c0ffee" -type f | wc -l)" = 8 ] || fail "package cache changed before the abort"
     [ -z "$extra" ] || fail "files written under data/: $(echo $extra)"
     if [ "$scenario" = installed ]; then
         [ "$(cat "$dir/root/data/adb/modules/aa4mg/module.prop")" = "$(printf 'id=aa4mg\nversion=installed')" ] \
@@ -422,7 +437,7 @@ run_action_case() {
     mkdir -p "$root"/{bin,etc,dev,system/bin,data/adb/modules/$ID}
     cp "$BUSYBOX" "$root/bin/busybox"
     local applet
-    for applet in $("$BUSYBOX" --list); do ln -s busybox "$root/bin/$applet"; done
+    for applet in $("$BUSYBOX" --list); do [ "$applet" = busybox ] || ln -s busybox "$root/bin/$applet"; done
     case "$key" in
         up) first='EV_SYN       SYN_REPORT           00000000'; rest='EV_KEY       KEY_VOLUMEUP         DOWN' ;;
         down) first='EV_KEY       KEY_VOLUMEDOWN       DOWN'; rest=$first ;;

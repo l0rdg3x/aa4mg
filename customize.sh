@@ -116,6 +116,18 @@ else
     AAXLU="false"
 fi
 
+# The package manager reuses its parsed copy of an APK from /data/system/package_cache while the cache file is not
+# older than the APK. Metamodules such as Hybrid Mount show module files with a 1970 timestamp, so after the module
+# swaps an APK (a newer Android Auto stub, a stub instead of the real app or back) the stale parse stays in use: the
+# package keeps the old version and permissions, and a stale privileged app can end in a boot loop on "Signature|
+# privileged permissions not in privileged permission allowlist". Drop the cached parses of the APKs this module
+# provides; the package manager parses them again at boot.
+for CACHE_NAME in Velvet AndroidAutoStubPrebuilt GoogleTTS Maps XLauncherUnlocked AndroidAutoOverlay.apk; do
+    for CACHE_FILE in /data/system/package_cache/*/"$CACHE_NAME"-[0-9]*-*; do
+        [ -f "$CACHE_FILE" ] && rm -f "$CACHE_FILE"
+    done
+done
+
 # KernelSU-Next 3.x and recent KernelSU mount module files only through a metamodule: the
 # /data/adb/metamodule symlink to an existing module, or any module with metamodule=1|true in
 # its module.prop (KernelSU-Next userspace/ksud/src/metamodule.rs).
