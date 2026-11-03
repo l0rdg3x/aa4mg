@@ -32,6 +32,11 @@ MODREL=data/adb/modules_update/$ID
 A_STUB=37f588bf651527a249e8b38ab01f8d28b9143b2050bd9820d2caa21f255c4903
 A_XML=edfc75e888e8f3c7b97359e059f08640bc06599b9daa11497e1033f3c2a401f8
 A_OVL=85ad586ad6dc57cb19720324299f7763121b0ee6b735f831e4ea5874c6b120c7
+GSA=com.google.android.googlequicksearchbox
+GSA_DIR=/data/app/~~test==/$GSA-test==
+VELVET_XML=system/product/etc/permissions/privapp-permissions-velvet.xml
+CACHE_MODULE="Velvet-16-750941797 AndroidAutoStubPrebuilt-16-1691210378 GoogleTTS-16-601047165 Maps-16-1 XLauncherUnlocked-16-2 AndroidAutoOverlay.apk-16-1057282734"
+CACHE_FOREIGN="com.google.android.apps.maps-eG-xpFhQwAemPuUtCdQi4Q==-0-2073578699 VelvetExtra-16-3"
 
 prune_tree() { rm -rf "$1/META-INF" "$1/tests" "$1/docs"; }
 
@@ -116,11 +121,24 @@ run_case() {
     cp "$BUSYBOX" "$root/bin/busybox"
     # No /proc in the chroot, so ASH_STANDALONE cannot find the applets by itself
     local applet
-    for applet in $("$BUSYBOX" --list); do ln -s busybox "$root/bin/$applet"; done
+    for applet in $("$BUSYBOX" --list); do [ "$applet" = busybox ] || ln -s busybox "$root/bin/$applet"; done
     echo 'root:x:0:0::/:/bin/sh' > "$root/etc/passwd"
     echo 'root:x:0:' > "$root/etc/group"
     printf '#!/bin/sh\necho "/dev/input/event0: EV_KEY       %s         DOWN"\n' "$key" > "$root/system/bin/getevent"
     chmod 755 "$root/system/bin/getevent"
+    # pm path: the gsa scenario has the real Google app installed in /data/app, all others have no Google app
+    if [ "$scenario" = gsa ]; then
+        mkdir -p "$root$GSA_DIR"
+        echo 'fake Google app base.apk' > "$root$GSA_DIR/base.apk"
+        printf '#!/bin/sh\n[ "$1 $2" = "path %s" ] || exit 1\necho package:%s/base.apk\necho package:%s/split_config.xxhdpi.apk\n' \
+            "$GSA" "$GSA_DIR" "$GSA_DIR" > "$root/system/bin/pm"
+    else
+        printf '#!/bin/sh\nexit 1\n' > "$root/system/bin/pm"
+    fi
+    chmod 755 "$root/system/bin/pm"
+    # Package manager cache: entries of the APKs aa4mg provides must be dropped, other entries kept
+    mkdir -p "$root/data/system/package_cache/c0ffee"
+    for n in $CACHE_MODULE $CACHE_FOREIGN; do echo cached > "$root/data/system/package_cache/c0ffee/$n"; done
     setup_metamodule "$root" "$scenario"
     local ksu=(KSU=true)
     case "$scenario" in magisk|magiskdisabled) ksu=() ;; esac
@@ -211,9 +229,11 @@ check_no_app_data() {
     [ -z "$extra" ] || fail "created under data/data/: $(echo $extra)"
 }
 
-# check_prompts CASEDIR yes|no [EXPECTED_PROMPTS]
+# check_prompts CASEDIR yes|no [EXPECTED_PROMPTS] [gsa]: gsa means the real Google app is installed
 check_prompts() {
     local dir=$1 answer=$2 want=${3:-4} n
+    local google="Google Search stub"
+    [ "${4:-}" = gsa ] && google="Google app as system app"
     grep -qF -- 'Stubs are fake placeholder apps. Answer YES only for' "$dir/log" || fail "stub explanation missing from the log"
     local prompts timeouts
     prompts=$(grep -cE '^\*\*\* (Install |Overwrite pre-existing)' "$dir/log" || true)
@@ -222,12 +242,12 @@ check_prompts() {
     ! grep -qE 'within (10|20) seconds or' "$dir/log" || fail "prompt with a timeout other than 30 seconds"
     if [ "$answer" = no ]; then
         grep -qxF -- 'Skipped:' "$dir/log" || fail "Skipped list missing although answer was no"
-        for n in "Google Maps stub" "Google Speech Services stub" "Google Search stub" "Android Auto - XLauncher Unlocked"; do
+        for n in "Google Maps stub" "Google Speech Services stub" "$google" "Android Auto - XLauncher Unlocked"; do
             grep -qxF -- "    $n" "$dir/log" || fail "skipped item '$n' not listed"
         done
     else
         ! grep -qF -- 'Skipped:' "$dir/log" || fail "Skipped list printed although answer was yes"
-        for n in "Google Maps stub" "Google Speech Services stub" "Google Search stub" "Android Auto - XLauncher Unlocked"; do
+        for n in "Google Maps stub" "Google Speech Services stub" "$google" "Android Auto - XLauncher Unlocked"; do
             grep -qxF -- "    $n" "$dir/log" || fail "installed item '$n' not listed"
         done
     fi
@@ -266,6 +286,12 @@ check_working_tree_case() {
             has_named "$n" || fail "$n missing although answer was yes"
         done
     fi
+
+    [ ! -e "$MOD/$VELVET_XML" ] || fail "$VELVET_XML present without a system copy of the Google app"
+    check_package_cache "$dir"
+    local mode=none
+    [ "$answer" = yes ] && mode=stub
+    [ "$(cat "$MOD/velvet_mode" 2>/dev/null)" = "$mode" ] || fail "velvet_mode is not '$mode'"
 
     local extra
     extra=$(LC_ALL=C comm -13 "$dir/dirs.before" "$dir/dirs.after")
@@ -331,6 +357,44 @@ check_symlink_case() {
     finish_case "api=36 answer=yes [symlinks]" "$dir/log"
 }
 
+# check_package_cache CASEDIR: cached parses of the module APKs removed, all other cache entries kept
+check_package_cache() {
+    local c=$1/root/data/system/package_cache/c0ffee n
+    for n in $CACHE_MODULE; do [ ! -e "$c/$n" ] || fail "package cache entry $n not removed"; done
+    for n in $CACHE_FOREIGN; do [ -e "$c/$n" ] || fail "foreign package cache entry $n removed"; done
+}
+
+# check_gsa_case yes|no: API 36 with the real Google app installed. The fake stub must not be offered (it would delete
+# the real app); YES copies the installed base.apk as the system Velvet.apk together with its privapp permissions.
+check_gsa_case() {
+    local answer=$1
+    local dir=$W/case/worktree-36-$answer-gsa
+    MOD=$dir/root/$MODREL
+    [ "$(cat "$dir/rc")" = 0 ] || fail "installer exited with status $(cat "$dir/rc")"
+    grep -q 'Installation of' "$dir/log" || fail "log does not contain 'Installation of'"
+    ! grep -qF -- '*** Install Fake Google Search stub?' "$dir/log" || fail "fake Google Search stub offered next to the real app"
+    grep -qF -- '*** Install the installed Google app as a system app? ***' "$dir/log" || fail "system app prompt missing"
+    check_prompts "$dir" "$answer" 4 gsa
+    check_ifs "$dir"
+    check_package_cache "$dir"
+    local want got
+    if [ "$answer" = yes ]; then
+        want=$(sha256sum < "$dir/root$GSA_DIR/base.apk"); want=${want%% *}
+        check_hash system/product/priv-app/Velvet/Velvet.apk "$want"
+        check_exists "$VELVET_XML"
+        [ "$(cat "$MOD/velvet_mode" 2>/dev/null)" = real ] || fail "velvet_mode is not 'real'"
+        [ "$(find "$MOD/system/product/priv-app/Velvet" -mindepth 1 | wc -l)" = 1 ] \
+            || fail "Velvet must contain only Velvet.apk"
+    else
+        ! has_named Velvet.apk || fail "Velvet.apk present although answer was no"
+        [ ! -e "$MOD/$VELVET_XML" ] || fail "$VELVET_XML present although answer was no"
+        [ "$(cat "$MOD/velvet_mode" 2>/dev/null)" = none ] || fail "velvet_mode is not 'none'"
+    fi
+    got=$(sha256sum < "$dir/root$GSA_DIR/base.apk")
+    [ "${got%% *}" = "$(echo 'fake Google app base.apk' | sha256sum | cut -d' ' -f1)" ] || fail "installed base.apk changed"
+    finish_case "api=36 answer=$answer [gsa]" "$dir/log"
+}
+
 # check_abort_case API [SCENARIO]: below Android 16 the installer must stop before any prompt, leave no module
 # directory behind and write nothing under data/ apart from the fixtures.
 check_abort_case() {
@@ -345,7 +409,8 @@ check_abort_case() {
     ! grep -qF -- 'Please answer within' "$dir/log" || fail "a prompt was shown before the abort"
     [ ! -e "$dir/root/$MODREL" ] || fail "$MODREL still present"
     local extra
-    extra=$(cd "$dir/root/data" && find . -type f | grep -vE '^\./adb/modules/[^/]+/module\.prop$' || true)
+    extra=$(cd "$dir/root/data" && find . -type f | grep -vE '^\./adb/modules/[^/]+/module\.prop$|^\./system/package_cache/c0ffee/' || true)
+    [ "$(find "$dir/root/data/system/package_cache/c0ffee" -type f | wc -l)" = 8 ] || fail "package cache changed before the abort"
     [ -z "$extra" ] || fail "files written under data/: $(echo $extra)"
     if [ "$scenario" = installed ]; then
         [ "$(cat "$dir/root/data/adb/modules/aa4mg/module.prop")" = "$(printf 'id=aa4mg\nversion=installed')" ] \
@@ -401,6 +466,11 @@ for answer in $ANSWERS; do
     check_phenotype_case "$answer"
 done
 
+for answer in $ANSWERS; do
+    run_case worktree 36 "$answer" gsa
+    check_gsa_case "$answer"
+done
+
 for api in 30 35 ""; do
     run_case worktree "$api" yes
     check_abort_case "$api"
@@ -416,13 +486,13 @@ done
 # PM: updated (pm removes the updates), clean (no updates installed), fail, or npe (Android Auto is not a system app).
 # Like the real command, the fake pm exits with 1 on success and 0 on failure (AOSP PackageManagerShellCommand).
 run_action_case() {
-    local name=$1 key=$2 pm=$3
+    local name=$1 key=$2 pm=$3 velvet=${4:-}
     local dir=$W/case/action-$name
     local root=$dir/root aa='com.google.android.projection.gearhead' first rest
     mkdir -p "$root"/{bin,etc,dev,system/bin,data/adb/modules/$ID}
     cp "$BUSYBOX" "$root/bin/busybox"
     local applet
-    for applet in $("$BUSYBOX" --list); do ln -s busybox "$root/bin/$applet"; done
+    for applet in $("$BUSYBOX" --list); do [ "$applet" = busybox ] || ln -s busybox "$root/bin/$applet"; done
     case "$key" in
         up) first='EV_SYN       SYN_REPORT           00000000'; rest='EV_KEY       KEY_VOLUMEUP         DOWN' ;;
         down) first='EV_KEY       KEY_VOLUMEDOWN       DOWN'; rest=$first ;;
@@ -444,6 +514,7 @@ run_action_case() {
     } > "$root/system/bin/pm"
     chmod 755 "$root/system/bin/getevent" "$root/system/bin/pm"
     cp "$W/tree/worktree/action.sh" "$root/data/adb/modules/$ID/" 2>/dev/null || true
+    [ -z "$velvet" ] || echo "$velvet" > "$root/data/adb/modules/$ID/velvet_mode"
     local start=$SECONDS
     timeout 60 unshare -r --fork chroot "$root" /bin/busybox env -i PATH=/bin ASH_STANDALONE=1 KSU=true \
         /bin/busybox sh -c "cd /data/adb/modules/$ID && /bin/busybox sh action.sh" > "$dir/log" 2>&1 || true
@@ -484,6 +555,15 @@ run_action_case broken broken updated
 check_action_case broken no 'Cannot read the volume keys (getevent exit status 1): nothing was changed.'
 run_action_case timeout none updated
 check_action_case timeout no 'Cancelled: nothing was changed.' 9 12
+
+# velvet_mode=real: one confirmation, then the updates of Android Auto and of the Google app are uninstalled
+run_action_case gsa up clean real
+calls=$(cat "$W/case/action-gsa/root/pm.calls" 2>/dev/null || true)
+[ "$calls" = "uninstall-system-updates com.google.android.projection.gearhead
+uninstall-system-updates $GSA" ] || fail "pm not called for Android Auto and then the Google app: $calls"
+grep -qF -- 'Uninstall the updates of Android Auto and the Google app?' "$W/case/action-gsa/log" || fail "prompt does not name the Google app"
+grep -qF -- 'No Google app updates were installed.' "$W/case/action-gsa/log" || fail "Google app result missing"
+finish_case "action [gsa]" "$W/case/action-gsa/log"
 
 if [ -n "$COMPARE_REF" ]; then
     for api in $APIS; do

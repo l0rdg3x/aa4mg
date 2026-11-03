@@ -59,6 +59,28 @@ Do not install the Maps stub if you use the real Google Maps. To switch from the
 
 On ROMs de-bloated by hiding system apps (for example with a de-bloater module), a user reported that the stubs were not written to their original locations and installed the stub APKs as normal apps instead (upstream issue #28).
 
+## Google app as system app (Hey Google on the hotword DSP)
+
+If the real Google app (`com.google.android.googlequicksearchbox`) is already installed, for example through Aurora
+Store, the installer does not offer the fake Google Search stub: the stub is not signed by Google, and at boot the
+package manager deletes the installed app because the signatures do not match. Instead it asks
+`Install the installed Google app as a system app?`.
+
+On YES the installer copies the installed `base.apk` (about 250 MB) to `/product/priv-app/Velvet` and adds
+`privapp-permissions-velvet.xml`. The copy is signed by Google, so after the reboot the installed app becomes an
+updated system app and gets the privileged permissions it requests, among them `MANAGE_SOUND_TRIGGER`,
+`CAPTURE_AUDIO_HOTWORD` and `MANAGE_VOICE_KEYPHRASES`. Without them the Google app cannot use the hotword DSP of the
+phone (logcat: `Can't get SoundTrigger module properties, don't have MANAGE_SOUND_TRIGGER permission`).
+
+- Android Auto uses the Google app for voice: with the fake stub (an empty app without components or permissions)
+  Android Auto shows "voice search not available" (microG issue #897). With the real Google app voice works.
+- Keep updating the Google app with Aurora as before. An update only gets the privileged permissions the system copy
+  requests; after a large update, install aa4mg again to refresh the copy.
+- The Action button uninstalls the Google app updates together with the Android Auto updates. Run it before you
+  disable or remove aa4mg, then install the Google app again from Aurora after the removal.
+- The permission list is the Google allowlist from the Assistant (Velvet) addon, plus permissions newer Google app
+  versions request that other Google allowlists grant. `OBSERVE_ROLE_HOLDERS` is denied: no Google allowlist grants it.
+
 ## Updates
 
 Once the installation is complete:
